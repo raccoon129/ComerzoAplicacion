@@ -12,5 +12,30 @@ namespace WebApi.Controllers
         public usuarioController() : base(Parametros.FabricaRepository.UsuarioRepository())
         {
         }
+
+        [HttpPost("login")]
+        public ActionResult<usuario> Login([FromBody] usuario credenciales)
+        {
+            try
+            {
+                var parametros = new Dictionary<string, string>
+                {
+                    { "p_nombre_usuario", credenciales.nombre_usuario_login },
+                    { "p_clave", credenciales.clave_usuario }
+                };
+
+                var resultado = _repositorio.EjecutarProcedimiento<usuario>("sp_validar_usuario", parametros).FirstOrDefault();
+
+                if (resultado != null)
+                {
+                    return Ok(resultado);
+                }
+                return Unauthorized("Credenciales inválidas");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error en login: {ex.Message}");
+            }
+        }
     }
 }

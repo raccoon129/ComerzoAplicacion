@@ -1,4 +1,3 @@
-
 namespace WebAPI
 {
     public class Program
@@ -13,6 +12,10 @@ namespace WebAPI
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            // Añade estas líneas en la configuración de servicios (antes de builder.Build())
+            builder.Services.AddHttpClient();
+            builder.Services.AddScoped<HttpClient>();
 
             var app = builder.Build();
 
