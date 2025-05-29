@@ -1,4 +1,5 @@
 ﻿using COMMON.Entidades;
+using COMMON.Modelos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI;
@@ -14,7 +15,7 @@ namespace WebApi.Controllers
         }
 
         [HttpPost("login")]
-        public ActionResult<usuario> Login([FromBody] usuario credenciales)
+        public ActionResult<usuario> Login([FromBody] LoginModel credenciales)
         {
             try
             {
