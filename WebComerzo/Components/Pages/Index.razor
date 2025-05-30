@@ -1,34 +1,19 @@
 ﻿@page "/"
+@rendermode InteractiveServer
 @layout LoginLayout
-@inject NavigationManager Navegador
-@inject NotificationService NotificationService
-@using System.ComponentModel.DataAnnotations
-@using COMMON.Modelos
-@using COMMON.Entidades
-@using BIZ
+
+
 
 <PageTitle>Iniciar Sesión</PageTitle>
 
-<style>
-    body {
-        overflow: hidden;
-    }
 
-    .error-message {
-        color: #dc3545;
-        margin-top: 1rem;
-        padding: 0.5rem;
-        border-radius: 4px;
-        background-color: rgba(220, 53, 69, 0.1);
-    }
-</style>
 
 <div class="container-fluid p-0 h-100">
     <div class="row justify-content-start align-items-center vh-100 m-0">
         <div class="col-md-6 p-5">
             <RadzenCard Style="padding: 50px; max-width: 100%; box-shadow: 0 14px 15px rgba(0, 0, 0, 0.1);">
                 <h2 class="text-center mb-4">Iniciar Sesión</h2>
-                <RadzenAlert>Use sus credenciales previamente compartidas.</RadzenAlert>
+
 
                 @if (!string.IsNullOrEmpty(errorMensaje))
                 {
@@ -36,35 +21,23 @@
                         @errorMensaje
                     </div>
                 }
-                <EditForm Model="@loginModel" OnValidSubmit="@IniciarSesion" FormName="LoginForm">
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <RadzenLabel Text="Usuario" />
-                            <RadzenTextBox @bind_value=@usuario
-                                           Class="w-100"
-                                           style="display: block"
-                                           Placeholder="Ingrese su usuario" />
-                        </div>
-                    </div>
-                    <div class="row mb-5">
-                        <div class="col-md-12">
-                            <RadzenLabel Text="Contraseña" />
-                            <RadzenPassword @bind_value=@contrasena
-                                            Class="w-100"
-                                            style="display: block"
-                                            Placeholder="Ingrese su contraseña" />
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12 text-center">
-                            <RadzenButton ButtonType="ButtonType.Submit"
-                                          Text="Iniciar Sesión"
-                                          Icon="login"
-                                          ButtonStyle="ButtonStyle.Primary"
-                                          class="w-100" />
-                        </div>
-                    </div>
-                </EditForm>
+                <center>
+                    <RadzenLabel Text="Usuario" /><br />
+                    <RadzenTextBox @bind-Value=@usuario class="w-100" />
+                    <br />
+                    <br />
+                    <RadzenLabel Text="Constraseña" /><br />
+                    <RadzenPassword @bind-Value=@contrasena class="w-100" />
+
+                    <br />
+                    <br />
+
+                    <RadzenButton Click="IniciarSesion"
+                    Text="Iniciar Sesión"
+                    Icon="login"
+                    ButtonStyle="ButtonStyle.Primary"
+                    class="w-100" IsBusy=cargando />
+                </center>
             </RadzenCard>
         </div>
     </div>
@@ -73,40 +46,41 @@
 
 
 @code {
-    [SupplyParameterFromForm]
-    LoginModel loginModel { get; set; }
+
     string usuario;
-    string contrasena;
+    string contrasena ;
     string errorMensaje;
     bool cargando = false;
+    UsuarioManager usuarioManager;
 
     protected override void OnInitialized()
     {
-        loginModel ??= new LoginModel();
         base.OnInitialized();
+        usuarioManager = FabricManager.UsuarioManager;
     }
 
     public async Task IniciarSesion()
     {
         try
         {
-            loginModel.nombre_usuario_login = usuario;
-            loginModel.clave_usuario = contrasena;
+            LoginModel credenciales = new LoginModel()
+                {
+                    clave_usuario = contrasena,
+                    nombre_usuario_login = usuario
+                };
             cargando = true;
             errorMensaje = string.Empty;
-            StateHasChanged();
 
-            var _usuarioConectado = await FabricManager.UsuarioManager.Login(loginModel);
+            var _usuarioConectado = await usuarioManager.Login(credenciales);
 
             if (_usuarioConectado != null)
             {
                 BIZ.sesionUsuario.usuarioConectado = _usuarioConectado;
-                NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Inicio de sesión correcto");
                 Navegador.NavigateTo("/dashboard");
             }
             else
             {
-                errorMensaje = FabricManager.UsuarioManager.Error;
+                errorMensaje = usuarioManager.Error;
             }
         }
         catch (Exception ex)
