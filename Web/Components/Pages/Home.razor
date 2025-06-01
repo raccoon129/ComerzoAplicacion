@@ -1,10 +1,18 @@
 ﻿@page "/dashboard"
+@using COMMON.Entidades
+@using BIZ
+@using FluentValidation
+@inject DialogService DialogService
 @inject NotificationService NotificationService
 
 <PageTitle>Dashboard</PageTitle>
 
 <div class="container">
-    <h2 class="text-center mb-4">Tu resumen del día</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Tu resumen del día</h2>
+        <RadzenButton Text="Nueva Venta" Icon="add_shopping_cart" ButtonStyle="ButtonStyle.Success"
+                      Click="@AbrirModalVenta" Class="my-3" />
+    </div>
 
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
@@ -30,71 +38,125 @@
         </div>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-header bg-success text-white">
-            Productos populares
-        </div>
-        <div class="card-body">
-            @if (productosPopulares.Any())
-            {
-                <div class="list-group">
-                    @foreach (var producto in productosPopulares)
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between">
+                        <h5 class="mb-0">Productos populares</h5>
+                        <a href="/producto" class="text-white"><i class="oi oi-external-link"></i></a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (productosPopulares.Any())
                     {
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">@producto.Nombre</h6>
-                                <small>Vendidos hoy: @producto.Cantidad</small>
-                            </div>
-                            <span class="badge bg-success rounded-pill">+@producto.PorcentajeVentas%</span>
+                        <div class="list-group">
+                            @foreach (var producto in productosPopulares)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0">@producto.Nombre</h6>
+                                        <small>Vendidos hoy: @producto.Cantidad</small>
+                                    </div>
+                                    <span class="badge bg-success rounded-pill">+@producto.PorcentajeVentas%</span>
+                                </div>
+                            }
                         </div>
                     }
+                    else
+                    {
+                        <div class="alert alert-info">No hay ventas registradas hoy.</div>
+                    }
                 </div>
-            }
-            else
-            {
-                <div class="alert alert-info">No hay ventas registradas hoy.</div>
-            }
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <div class="d-flex justify-content-between">
+                        <h5 class="mb-0">Inventario bajo</h5>
+                        <a href="/inventario" class="text-white"><i class="oi oi-external-link"></i></a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (productosBajoStock.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var producto in productosBajoStock)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0">@producto.nombre_producto</h6>
+                                        <small class="text-danger">Quedan @producto.stock_producto unidades</small>
+                                    </div>
+                                    <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="info" Size="ButtonSize.Small"
+                                                  Click="@(() => VerDetalleProducto(producto))" />
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">No hay productos con bajo stock.</div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header bg-danger text-white">
-            Inventario bajo
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <div class="d-flex justify-content-between">
+                <h5 class="mb-0">Últimas ventas</h5>
+                <a href="/venta" class="text-white"><i class="oi oi-external-link"></i></a>
+            </div>
         </div>
         <div class="card-body">
-            @if (productosBajoStock.Any())
+            @if (cargando)
             {
-                <div class="list-group">
-                    @foreach (var producto in productosBajoStock)
-                    {
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">@producto.nombre_producto</h6>
-                                <small class="text-danger">Quedan @producto.stock_producto unidades</small>
-                            </div>
-                        </div>
-                    }
-                </div>
+                <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px" />
+            }
+            else if (ultimasVentas != null && ultimasVentas.Any())
+            {
+                <RadzenDataGrid Data="@ultimasVentas" TItem="venta" AllowPaging="true" PageSize="5">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="venta" Property="id_venta" Title="ID" Width="70px" />
+                        <RadzenDataGridColumn TItem="venta" Property="fecha_hora_venta" Title="Fecha" FormatString="{0:dd/MM/yyyy HH:mm}" />
+                        <RadzenDataGridColumn TItem="venta" Property="monto_total_venta" Title="Total" FormatString="{0:C}" />
+                        <RadzenDataGridColumn TItem="venta" Title="Detalles" Sortable="false" Filterable="false" Width="100px">
+                            <Template Context="data">
+                                <RadzenButton ButtonStyle="ButtonStyle.Info" Icon="visibility" Size="ButtonSize.Small"
+                                              Click="@(() => VerDetalleVenta(data))" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
             }
             else
             {
-                <div class="alert alert-info">No hay productos con bajo stock.</div>
+                <div class="alert alert-info">No hay ventas registradas.</div>
             }
         </div>
     </div>
 </div>
 
 @code {
+    // Variables para almacenar los datos del dashboard
     private decimal totalVentasDia = 0;
     private int totalProductosVendidos = 0;
     private List<ProductoPopular> productosPopulares = new List<ProductoPopular>();
     private List<producto> productosBajoStock = new List<producto>();
-    
+    private List<venta> ultimasVentas = new List<venta>();
+    private bool cargando = false;
+
     // Instancias locales de managers
     private VentaManager _ventaManager;
     private ProductoManager _productoManager;
     private InventarioManager _inventarioManager;
-    
+    private VentaDetalleManager _ventaDetalleManager;
+
+    // Clase para representar los productos populares
     private class ProductoPopular
     {
         public string Nombre { get; set; }
@@ -107,12 +169,14 @@
         // Crear validadores temporales para los managers
         var productoValidator = new DummyValidator<producto>();
         var ventaValidator = new DummyValidator<venta>();
+        var ventaDetalleValidator = new DummyValidator<venta_detalle>();
         var inventarioValidator = new DummyValidator<inventario>();
-        
-        // Inicializar los managers
+
+        // Inicializar los managers en el orden correcto (dependencias primero)
         _productoManager = new ProductoManager(productoValidator);
         _inventarioManager = new InventarioManager(inventarioValidator, _productoManager);
         _ventaManager = new VentaManager(ventaValidator, _inventarioManager);
+        _ventaDetalleManager = new VentaDetalleManager(ventaDetalleValidator, _productoManager, _inventarioManager);
     }
 
     protected override async Task OnInitializedAsync()
@@ -120,23 +184,45 @@
         await CargarDatos();
     }
 
+    // Método principal para cargar todos los datos del dashboard
     private async Task CargarDatos()
     {
-        await CargarResumenVentas();
-        await CargarProductosPopulares();
-        await CargarInventarioBajo();
+        cargando = true;
+        try
+        {
+            await CargarResumenVentas();
+            await CargarProductosPopulares();
+            await CargarInventarioBajo();
+            await CargarUltimasVentas();
+        }
+        finally
+        {
+            cargando = false;
+        }
     }
 
+    // Carga el resumen de ventas del día
     private async Task CargarResumenVentas()
     {
         try
         {
             var ventasHoy = await _ventaManager.ObtenerVentasDelDia();
-            
+
             if (ventasHoy != null)
             {
                 totalVentasDia = ventasHoy.Sum(v => v.monto_total_venta);
-                totalProductosVendidos = ventasHoy.Count;
+
+                // Obtener todos los detalles de ventas para contar productos vendidos
+                int totalItems = 0;
+                foreach (var venta in ventasHoy)
+                {
+                    var detalles = await _ventaDetalleManager.ObtenerPorVenta(venta.id_venta);
+                    if (detalles != null)
+                    {
+                        totalItems += detalles.Sum(d => d.cantidad_vendida);
+                    }
+                }
+                totalProductosVendidos = totalItems;
             }
         }
         catch (Exception ex)
@@ -145,22 +231,80 @@
         }
     }
 
+    // Carga los productos más populares
     private async Task CargarProductosPopulares()
     {
-        // Simulación de productos populares
-        productosPopulares = new List<ProductoPopular>
+        try
         {
-            new ProductoPopular { Nombre = "Granola Natural", Cantidad = 8, PorcentajeVentas = 25 },
-            new ProductoPopular { Nombre = "Palanquetas de Amaranto", Cantidad = 6, PorcentajeVentas = 15 }
-        };
+            // Esta implementación sería mejor obteniendo datos reales desde la base de datos
+            // Por ahora, haremos una simulación basada en ventas
+            var ventasHoy = await _ventaManager.ObtenerVentasDelDia();
+            Dictionary<int, int> productosCantidad = new Dictionary<int, int>();
+
+            if (ventasHoy != null && ventasHoy.Any())
+            {
+                foreach (var venta in ventasHoy)
+                {
+                    var detalles = await _ventaDetalleManager.ObtenerPorVenta(venta.id_venta);
+                    if (detalles != null)
+                    {
+                        foreach (var detalle in detalles)
+                        {
+                            if (!productosCantidad.ContainsKey(detalle.id_producto))
+                            {
+                                productosCantidad[detalle.id_producto] = 0;
+                            }
+                            productosCantidad[detalle.id_producto] += detalle.cantidad_vendida;
+                        }
+                    }
+                }
+
+                // Obtener los productos más vendidos
+                var productos = await _productoManager.ObtenerTodos();
+                var totalVendido = productosCantidad.Values.Sum();
+
+                if (productos != null && totalVendido > 0)
+                {
+                    productosPopulares = productosCantidad
+                        .OrderByDescending(p => p.Value)
+                        .Take(5)
+                        .Select(p =>
+                        {
+                            var prod = productos.FirstOrDefault(x => x.id_producto == p.Key);
+                            return new ProductoPopular
+                            {
+                                Nombre = prod?.nombre_producto ?? $"Producto #{p.Key}",
+                                Cantidad = p.Value,
+                                PorcentajeVentas = (int)Math.Round(p.Value * 100.0 / totalVendido)
+                            };
+                        })
+                        .ToList();
+                }
+            }
+
+            // Si no hay datos, mostrar simulación
+            if (!productosPopulares.Any())
+            {
+                productosPopulares = new List<ProductoPopular>
+                {
+                    new ProductoPopular { Nombre = "Granola Natural", Cantidad = 8, PorcentajeVentas = 25 },
+                    new ProductoPopular { Nombre = "Palanquetas de Amaranto", Cantidad = 6, PorcentajeVentas = 15 }
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error al cargar productos populares: {ex.Message}");
+        }
     }
 
+    // Carga los productos con stock bajo
     private async Task CargarInventarioBajo()
     {
         try
         {
             var productos = await _productoManager.ObtenerTodos();
-            
+
             if (productos != null)
             {
                 // Consideramos bajo stock menos de 5 unidades
@@ -173,8 +317,80 @@
         }
     }
 
+    // Carga las últimas ventas realizadas
+    private async Task CargarUltimasVentas()
+    {
+        try
+        {
+            var ventas = await _ventaManager.ObtenerTodos();
+            if (ventas != null)
+            {
+                ultimasVentas = ventas
+                    .OrderByDescending(v => v.fecha_hora_venta)
+                    .Take(10)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error al cargar ventas: {ex.Message}");
+        }
+    }
+
+    // Abre el modal para crear una nueva venta
+    private async Task AbrirModalVenta()
+    {
+        // Pasar los managers como parámetros al componente
+        var parameters = new Dictionary<string, object>
+        {
+            { "ProductoManager", _productoManager },
+            { "VentaManager", _ventaManager },
+            { "VentaDetalleManager", _ventaDetalleManager },
+            { "InventarioManager", _inventarioManager }
+        };
+
+        var resultado = await DialogService.OpenAsync<ModalNuevaVenta>("Nueva Venta",
+            parameters: parameters,
+            options: new DialogOptions { Width = "90%", Height = "90%", CloseDialogOnOverlayClick = false });
+
+        if (resultado != null)
+        {
+            // Si se completó la venta, actualizar los datos del dashboard
+            await CargarDatos();
+
+            // Mostrar mensaje de éxito
+            NotificationService.Notify(NotificationSeverity.Success, "Venta realizada",
+                $"Venta registrada correctamente con ID #{resultado}");
+        }
+    }
+
+    // Ver detalles de un producto
+    private async Task VerDetalleProducto(producto producto)
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "Producto", producto }
+        };
+
+        await DialogService.OpenAsync<DetalleProductoComponent>("Detalles de Producto", parameters);
+    }
+
+    // Ver detalles de una venta
+    private async Task VerDetalleVenta(venta venta)
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "IdVenta", venta.id_venta },
+            { "VentaManager", _ventaManager },
+            { "VentaDetalleManager", _ventaDetalleManager },
+            { "ProductoManager", _productoManager }
+        };
+
+        await DialogService.OpenAsync<DetalleVentaComponent>("Detalle de Venta", parameters);
+    }
+
     // Validador dummy para inicializar los managers sin DI
-    public class DummyValidator<T> : FluentValidation.AbstractValidator<T>
+    public class DummyValidator<T> : AbstractValidator<T>
     {
         public DummyValidator()
         {

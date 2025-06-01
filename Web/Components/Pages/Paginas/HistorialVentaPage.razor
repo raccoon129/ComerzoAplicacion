@@ -1,44 +1,69 @@
-﻿@page "/venta"
+﻿@page "/venta/historial"
 @using COMMON
 @using COMMON.Entidades
 @inject DialogService DialogService
 @inject NotificationService NotificationService
 
-<PageTitle>Venta de Productos</PageTitle>
+
+
+<PageTitle>Historial de Ventas</PageTitle>
 
 <div class="container">
-    <h2 class="text-center mb-4">Venta de Productos</h2>
-
-    <div class="text-center mb-4">
-        <RadzenButton Text="Nueva Venta" Icon="add_shopping_cart" ButtonStyle="ButtonStyle.Primary"
-                      Click="@AbrirModalVenta" Class="my-3" />
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Historial de Ventas</h2>
+        
+        <!-- Filtros de búsqueda para el historial -->
+        <div class="d-flex">
+            <RadzenDatePicker @bind-Value=@fechaDesde Placeholder="Desde" Class="me-2" />
+            <RadzenDatePicker @bind-Value=@fechaHasta Placeholder="Hasta" Class="me-2" />
+            <RadzenButton Text="Filtrar" Icon="search" Click=@FiltrarVentas ButtonStyle="ButtonStyle.Secondary" />
+        </div>
     </div>
 
     <div class="mb-4">
-        <h3>Últimas ventas</h3>
         @if (cargando)
         {
             <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px" />
         }
-        else if (ultimasVentas != null && ultimasVentas.Any())
+        else if (ventasFiltradas != null && ventasFiltradas.Any())
         {
-            <RadzenDataGrid Data="@ultimasVentas" TItem="venta" AllowPaging="true" PageSize="5">
+            <RadzenDataGrid Data="@ventasFiltradas" TItem="venta" AllowPaging="true" PageSize="10"
+                           AllowSorting="true" AllowFiltering="true">
                 <Columns>
                     <RadzenDataGridColumn TItem="venta" Property="id_venta" Title="ID" Width="70px" />
                     <RadzenDataGridColumn TItem="venta" Property="fecha_hora_venta" Title="Fecha" FormatString="{0:dd/MM/yyyy HH:mm}" />
+                    <RadzenDataGridColumn TItem="venta" Property="usuario_alta" Title="Vendedor" />
+                    <RadzenDataGridColumn TItem="venta" Property="id_cliente" Title="ID Cliente" />
                     <RadzenDataGridColumn TItem="venta" Property="monto_total_venta" Title="Total" FormatString="{0:C}" />
-                    <RadzenDataGridColumn TItem="venta" Title="Detalles" Sortable="false" Filterable="false" Width="100px">
+                    <RadzenDataGridColumn TItem="venta" Title="Acciones" Sortable="false" Filterable="false" Width="150px">
                         <Template Context="data">
                             <RadzenButton ButtonStyle="ButtonStyle.Info" Icon="visibility" Size="ButtonSize.Small"
-                                          Click="@(() => VerDetalleVenta(data))" />
+                                          Click="@(() => VerDetalleVenta(data))" Text="Detalles" />
                         </Template>
                     </RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
+            
+            <!-- Resumen de ventas -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>Total ventas: <span class="text-primary">@ventasFiltradas.Count</span></h6>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Monto total: <span class="text-primary">@ventasFiltradas.Sum(v => v.monto_total_venta).ToString("C")</span></h6>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Promedio: <span class="text-primary">@(ventasFiltradas.Any() ? (ventasFiltradas.Sum(v => v.monto_total_venta) / ventasFiltradas.Count).ToString("C") : "$0.00")</span></h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
         }
         else
         {
-            <div class="alert alert-info">No hay ventas registradas.</div>
+            <div class="alert alert-info">No hay ventas que coincidan con los criterios de búsqueda.</div>
         }
     </div>
 </div>
@@ -46,6 +71,10 @@
 @code {
     private bool cargando = false;
     private List<venta> ultimasVentas = new List<venta>();
+    private List<venta> todasLasVentas = new List<venta>();
+    private List<venta> ventasFiltradas = new List<venta>();
+    private DateTime? fechaDesde = DateTime.Today.AddDays(-30); // Último mes por defecto
+    private DateTime? fechaHasta = DateTime.Today;
     
     // Instancias locales de managers
     private ProductoManager _productoManager;
@@ -71,6 +100,7 @@
     protected override async Task OnInitializedAsync()
     {
         await CargarUltimasVentas();
+        await CargarVentas();
     }
 
     private async Task CargarUltimasVentas()
@@ -97,31 +127,50 @@
         }
     }
 
-    private async Task AbrirModalVenta()
+    private async Task CargarVentas()
     {
-        // Pasar los managers como parámetros al componente
-        var parameters = new Dictionary<string, object>
+        cargando = true;
+        try
         {
-            { "ProductoManager", _productoManager },
-            { "VentaManager", _ventaManager },
-            { "VentaDetalleManager", _ventaDetalleManager },
-            { "InventarioManager", _inventarioManager }
-        };
-
-        var resultado = await DialogService.OpenAsync<ModalNuevaVenta>("Nueva Venta",
-            parameters: parameters,
-            options: new DialogOptions { Width = "90%", Height = "90%", CloseDialogOnOverlayClick = false });
-
-        if (resultado != null)
+            todasLasVentas = await _ventaManager.ObtenerTodos() ?? new List<venta>();
+            
+            // Aplicar filtros iniciales
+            AplicarFiltros();
+        }
+        catch (Exception ex)
         {
-            // Si resultado es true, actualizar la lista de ventas
-            await CargarUltimasVentas();
-
-            // Mostrar mensaje de éxito
-            NotificationService.Notify(NotificationSeverity.Success, "Venta realizada",
-                $"Venta registrada correctamente con ID #{resultado}");
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error al cargar ventas: {ex.Message}");
+            ventasFiltradas = new List<venta>();
+        }
+        finally
+        {
+            cargando = false;
         }
     }
+
+    private void AplicarFiltros()
+    {
+        ventasFiltradas = todasLasVentas.Where(v => 
+            (!fechaDesde.HasValue || v.fecha_hora_venta.Date >= fechaDesde.Value.Date) &&
+            (!fechaHasta.HasValue || v.fecha_hora_venta.Date <= fechaHasta.Value.Date)
+        )
+        .OrderByDescending(v => v.fecha_hora_venta)
+        .ToList();
+    }
+
+    private async Task FiltrarVentas()
+    {
+        cargando = true;
+        try
+        {
+            AplicarFiltros();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
 
     private async Task VerDetalleVenta(venta venta)
     {

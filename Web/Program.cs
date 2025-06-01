@@ -13,6 +13,14 @@ namespace Web
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
 
+
+            // Registrar servicios de Radzen correctamente
+            builder.Services.AddScoped<DialogService>();
+            builder.Services.AddScoped<NotificationService>();
+            builder.Services.AddScoped<TooltipService>();
+            builder.Services.AddScoped<ContextMenuService>();
+
+
             builder.Services.AddRadzenComponents();
             var app = builder.Build();
 
