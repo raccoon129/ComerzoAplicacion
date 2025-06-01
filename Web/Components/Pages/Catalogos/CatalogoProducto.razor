@@ -2,4 +2,175 @@
 @using COMMON.Entidades
 @using BIZ
 @using COMMON.Validadores
-@inject DialogService dialogService
+
+
+<h3>Catálogo de Productos</h3>
+
+<br />
+
+<RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new producto()))"></RadzenButton>
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@productos" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
+
+    <Columns>
+        <RadzenDataGridColumn Property="id_producto" Title="ID" Width="50px" />
+        <RadzenDataGridColumn Property="nombre_producto" Title="Nombre" Width="100px" />
+        <RadzenDataGridColumn Property="descripcion_producto" Title="Descripción" Width="150px" />
+        <RadzenDataGridColumn Property="precio_producto" Title="Precio" Width="70px" />
+        <RadzenDataGridColumn Property="stock_producto" Title="Stock" Width="60px" />
+        <RadzenDataGridColumn Property="estado_producto" Title="Estado" Width="80px" />
+        <RadzenDataGridColumn Title="Acciones">
+            <Template Context="data">
+                <RadzenButton Click="@(() => Editar((producto)data))" ButtonStyle="ButtonStyle.Warning" Icon="edit"></RadzenButton>
+                <RadzenButton Click="@(() => Eliminar((producto)data))" ButtonStyle="ButtonStyle.Danger" Icon="delete"></RadzenButton>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+<br />
+<br />
+
+@code {
+    ProductoManager productoManager;
+    List<producto> productos;
+    Dictionary<string, string> estadosProducto;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        productoManager = new ProductoManager(new productoValidator());
+
+        estadosProducto = new Dictionary<string, string>();
+        estadosProducto.Add("activo", "Disponible");
+        estadosProducto.Add("agotado", "Agotado");
+        estadosProducto.Add("descontinuado", "Descontinuado");
+
+        ActualizarTabla();
+    }
+
+    protected async void ActualizarTabla()
+    {
+        productos = await productoManager.ObtenerTodos();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected async Task Editar(producto producto)
+    {
+        string titulo = producto.id_producto == 0 ? "Nuevo Producto" : $"Editar {producto.nombre_producto}";
+
+        // Creamos una copia local para trabajar en el diálogo
+        var productoEdicion = new producto
+        {
+            id_producto = producto.id_producto,
+            nombre_producto = producto.nombre_producto,
+            descripcion_producto = producto.descripcion_producto,
+            precio_producto = producto.precio_producto,
+            stock_producto = producto.stock_producto,
+            estado_producto = producto.estado_producto,
+            notas_producto = producto.notas_producto
+        };
+
+        var result = await dialogService.OpenAsync(titulo, ds => @<RadzenStack Gap="1.5rem">
+
+        <div class="row">
+            <div class="col-6">Nombre del Producto</div>
+            <div class="col-6">Descripción</div>
+        </div>
+        <div class="row">
+            <div class="col-6"><RadzenTextBox @bind-Value="productoEdicion.nombre_producto" class="w-100"></RadzenTextBox></div>
+            <div class="col-6"><RadzenTextBox @bind-Value="productoEdicion.descripcion_producto" class="w-100"></RadzenTextBox></div>
+        </div>
+
+        <div class="row">
+            <div class="col-4">Precio</div>
+            <div class="col-4">Stock</div>
+            <div class="col-4">Estado</div>
+        </div>
+        <div class="row">
+            <div class="col-4"><RadzenNumeric @bind-Value="productoEdicion.precio_producto" TValue="decimal" class="w-100"></RadzenNumeric></div>
+            <div class="col-4"><RadzenNumeric @bind-Value="productoEdicion.stock_producto" TValue="int" class="w-100"></RadzenNumeric></div>
+            <div class="col-4">
+                <RadzenDropDown @bind-Value="productoEdicion.estado_producto" Data="@estadosProducto" TValue="string" TextProperty="Value" ValueProperty="Key" class="w-100"></RadzenDropDown>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">Notas</div>
+        </div>
+        <div class="row">
+            <div class="col-12"><RadzenTextBox @bind-Value="productoEdicion.notas_producto" class="w-100" Multiline="true" Rows="3"></RadzenTextBox></div>
+        </div>
+
+        <div class="row">
+            <div class="col-6"></div>
+            <div class="col-3">
+                <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
+                              Click="@(() => GuardarDesdeDialog(productoEdicion, ds))"></RadzenButton>
+            </div>
+            <div class="col-3">
+                <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
+                              Click="@(() => ds.Close(false))"></RadzenButton>
+            </div>
+        </div>
+
+    </RadzenStack>
+        , new DialogOptions()
+        {
+            Draggable = true,
+            ShowClose = true,
+            Resizable = true,
+            Width = "800px",
+            Height = "500px"
+        });
+
+        if (result == true)
+        {
+            ActualizarTabla();
+        }
+    }
+
+    protected async Task GuardarDesdeDialog(producto producto, DialogService ds)
+    {
+        producto resultado;
+        if (producto.id_producto == 0)
+        {
+            resultado = await productoManager.Agregar(producto);
+        }
+        else
+        {
+            resultado = await productoManager.Modificar(producto);
+        }
+
+        if (resultado != null)
+        {
+            ds.Close(true);
+            ActualizarTabla();
+        }
+        else
+        {
+            await dialogService.Alert(productoManager.Error, "Error al guardar");
+        }
+    }
+
+    protected async Task Eliminar(producto producto)
+    {
+        var r = await dialogService.Confirm($"¿Deseas eliminar el producto {producto.nombre_producto}?", "Advertencia",
+            new ConfirmOptions() { OkButtonText = "Si", CancelButtonText = "No" });
+
+        if (r.Value)
+        {
+            var eliminado = await productoManager.Eliminar(producto.id_producto);
+            if (eliminado)
+            {
+                Console.WriteLine("Producto eliminado exitosamente");
+                ActualizarTabla();
+            }
+            else
+            {
+                Console.WriteLine($"No se pudo eliminar: {productoManager.Error}");
+                await dialogService.Alert(productoManager.Error, "Error al eliminar");
+            }
+        }
+    }
+}

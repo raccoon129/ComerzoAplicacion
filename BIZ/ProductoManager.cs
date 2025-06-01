@@ -14,6 +14,28 @@ namespace BIZ
         {
         }
 
+        public override async Task<producto> Agregar(producto entidad)
+        {
+            try
+            {
+                // Validaciones y configuraciones iniciales
+                if (string.IsNullOrEmpty(entidad.estado_producto))
+                {
+                    entidad.estado_producto = "activo";
+                }
 
+                if (string.IsNullOrEmpty(entidad.notas_producto))
+                {
+                    entidad.notas_producto = "Sin notas";
+                }
+
+                return await base.Agregar(entidad);
+            }
+            catch (Exception ex)
+            {
+                Error = $"Error al agregar producto: {ex.Message}";
+                return null;
+            }
+        }
     }
 }
