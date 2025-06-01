@@ -1,0 +1,24 @@
+﻿@using Radzen
+@using Radzen.Blazor
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand">Comerzo Web</a>
+        <button title="Navigation menu" class="navbar-toggler">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<RadzenPanelMenu>
+    <RadzenPanelMenuItem Text="Inicio" Icon="home" Path="/dashboard" />
+
+    <RadzenPanelMenuItem Text="Clientes" Icon="people" Path="/cliente" />
+    <RadzenPanelMenuItem Text="Productos" Icon="inventory_2" Path="/producto" />
+    <RadzenPanelMenuItem Text="Inventario" Icon="warehouse" Path="/inventario" />
+    <RadzenPanelMenuItem Text="Usuarios" Icon="account_circle" Path="/usuario" />
+
+
+    <RadzenPanelMenuItem Text="Configuración" Icon="settings" Path="configuracion" />
+</RadzenPanelMenu>
+

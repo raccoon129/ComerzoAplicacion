@@ -14,7 +14,7 @@ namespace BIZ
         {
         }
 
-        public override Task<cliente> Agregar(cliente entidad)
+        public override async Task<cliente> Agregar(cliente entidad)
         {
             try
             {
@@ -29,7 +29,7 @@ namespace BIZ
                     entidad.direccion_cliente = "Sin dirección";
                 }
 
-                return base.Agregar(entidad);
+                return await base.Agregar(entidad);
             }
             catch (Exception ex)
             {
@@ -38,5 +38,4 @@ namespace BIZ
             }
         }
     }
-
 }

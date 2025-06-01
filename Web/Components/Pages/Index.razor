@@ -1,11 +1,8 @@
 ﻿@page "/"
-@rendermode InteractiveServer
+
 @layout LoginLayout
 
-
-
 <PageTitle>Iniciar Sesión</PageTitle>
-
 
 
 <div class="container-fluid p-0 h-100">
@@ -33,10 +30,10 @@
                     <br />
 
                     <RadzenButton Click="IniciarSesion"
-                    Text="Iniciar Sesión"
-                    Icon="login"
-                    ButtonStyle="ButtonStyle.Primary"
-                    class="w-100" IsBusy=cargando />
+                                  Text="Iniciar Sesión"
+                                  Icon="login"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  class="w-100" IsBusy=cargando />
                 </center>
             </RadzenCard>
         </div>
@@ -48,7 +45,7 @@
 @code {
 
     string usuario;
-    string contrasena ;
+    string contrasena;
     string errorMensaje;
     bool cargando = false;
     UsuarioManager usuarioManager;
@@ -64,10 +61,10 @@
         try
         {
             LoginModel credenciales = new LoginModel()
-                {
-                    clave_usuario = contrasena,
-                    nombre_usuario_login = usuario
-                };
+            {
+                clave_usuario = contrasena,
+                nombre_usuario_login = usuario
+            };
             cargando = true;
             errorMensaje = string.Empty;
 

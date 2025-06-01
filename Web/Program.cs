@@ -1,7 +1,7 @@
 using Radzen;
-using WebComerzo.Components;
+using Web.Components;
 
-namespace WebComerzo
+namespace Web
 {
     public class Program
     {
@@ -12,9 +12,8 @@ namespace WebComerzo
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+
             builder.Services.AddRadzenComponents();
-            // Añade esta línea con el resto de los servicios
-            builder.Services.AddHttpClient();
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.

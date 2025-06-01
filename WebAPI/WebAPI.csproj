@@ -14,7 +14,6 @@
     <ProjectReference Include="..\BIZ\BIZ.csproj" />
     <ProjectReference Include="..\COMMON\COMMON.csproj" />
     <ProjectReference Include="..\DAL\DAL.csproj" />
-    <ProjectReference Include="..\WebComerzo\WebComerzo.csproj" />
   </ItemGroup>
 
 </Project>

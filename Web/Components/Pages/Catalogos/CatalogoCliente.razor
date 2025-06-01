@@ -1,0 +1,142 @@
+﻿@page "/cliente"
+@using COMMON.Entidades
+@using BIZ
+@using COMMON.Validadores
+@inject DialogService dialogService
+
+<h3>Catálogo de Clientes</h3>
+
+<br />
+
+<RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="(() => Editar(new cliente()))"></RadzenButton>
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@clientes" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
+
+    <Columns>
+        <RadzenDataGridColumn Property="id_cliente" Title="ID" Width="50px" />
+        <RadzenDataGridColumn Property="nombre_cliente" Title="Nombre" Width="150px" />
+        <RadzenDataGridColumn Property="telefono_cliente" Title="Teléfono" Width="100px" />
+        <RadzenDataGridColumn Property="direccion_cliente" Title="Dirección" Width="200px" />
+        <RadzenDataGridColumn Title="Acciones">
+            <Template Context="data">
+                <RadzenButton Click="(() => Editar(data))" ButtonStyle="ButtonStyle.Warning" Icon="edit"></RadzenButton>
+                <RadzenButton Click="(() => Eliminar(data))" ButtonStyle="ButtonStyle.Danger" Icon="delete"></RadzenButton>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+<br />
+<br />
+
+@code {
+    ClienteManager clienteManager;
+    List<cliente> clientes;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        clienteManager = new ClienteManager(new clienteValidator());
+        ActualizarTabla();
+    }
+
+    protected async void ActualizarTabla()
+    {
+        clientes = await clienteManager.ObtenerTodos();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected async Task Editar(cliente cliente)
+    {
+        string titulo = cliente.id_cliente == 0 ? "Nuevo Cliente" : $"Editar {cliente.nombre_cliente}";
+
+        var result = await dialogService.OpenAsync(titulo, ds => @<RadzenStack Gap="1.5rem">
+
+    <div class="row">
+        <div class="col-12">Nombre del Cliente</div>
+    </div>
+    <div class="row">
+        <div class="col-12"><RadzenTextBox @bind-Value="cliente.nombre_cliente" class="w-100"></RadzenTextBox></div>
+    </div>
+
+    <div class="row">
+        <div class="col-6">Teléfono</div>
+        <div class="col-6">Dirección</div>
+    </div>
+    <div class="row">
+        <div class="col-6"><RadzenTextBox @bind-Value="cliente.telefono_cliente" class="w-100"></RadzenTextBox></div>
+        <div class="col-6"><RadzenTextBox @bind-Value="cliente.direccion_cliente" class="w-100"></RadzenTextBox></div>
+    </div>
+
+    <div class="row">
+        <div class="col-6"></div>
+        <div class="col-3">
+            <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
+                          Click="(()=>Guardar(cliente))"></RadzenButton>
+        </div>
+        <div class="col-3">
+            <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
+                          Click="(()=>ds.Close(false))"></RadzenButton>
+        </div>
+    </div>
+
+</RadzenStack>
+        , new DialogOptions()
+          {
+              Draggable = true,
+              ShowClose = true,
+              Resizable = true,
+              Width = "700px",
+              Height = "400px"
+          });
+
+        if (result == true)
+        {
+            await Guardar(cliente);
+        }
+    }
+
+    protected async Task Guardar(cliente cliente)
+    {
+        cliente resultado;
+        if (cliente.id_cliente == 0)
+        {
+            resultado = await clienteManager.Agregar(cliente);
+        }
+        else
+        {
+            resultado = await clienteManager.Modificar(cliente);
+        }
+
+        if (resultado != null)
+        {
+            dialogService.Close(true);
+            ActualizarTabla();
+        }
+        else
+        {
+            await dialogService.Alert(clienteManager.Error, "Error al guardar");
+        }
+    }
+
+    protected async Task Eliminar(cliente cliente)
+    {
+        var r = await dialogService.Confirm($"¿Deseas eliminar al cliente {cliente.nombre_cliente}?", "Advertencia",
+            new ConfirmOptions() { OkButtonText = "Si", CancelButtonText = "No" });
+
+        if (r.Value)
+        {
+            var eliminado = await clienteManager.Eliminar(cliente.id_cliente);
+            if (eliminado)
+            {
+                Console.WriteLine("Cliente eliminado exitosamente");
+                ActualizarTabla();
+            }
+            else
+            {
+                Console.WriteLine($"No se pudo eliminar: {clienteManager.Error}");
+                await dialogService.Alert(clienteManager.Error, "Error al eliminar");
+            }
+        }
+    }
+}
