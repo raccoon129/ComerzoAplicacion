@@ -1,0 +1,346 @@
+﻿@using COMMON
+@using COMMON.Entidades
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h3>Seleccionar Productos</h3>
+            <div class="mb-3">
+                <RadzenTextBox Placeholder="Buscar productos..." @bind-Value="@textoBusqueda" Change="@BuscarProductos"
+                               class="w-100" />
+            </div>
+        </div>
+        <div class="col-md-6 text-end align-self-end">
+            <RadzenButton Icon="shopping_cart" Text="Finalizar Venta" ButtonStyle="ButtonStyle.Success"
+                          Click="@FinalizarVenta" Disabled="@(!productosSeleccionados.Any())" />
+            <RadzenButton Icon="cancel" Text="Cancelar" ButtonStyle="ButtonStyle.Light"
+                          Click="@CancelarVenta" class="ms-2" />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            @if (cargando)
+            {
+                <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px" />
+            }
+            else if (productosFiltrados?.Count > 0)
+            {
+                <div class="row">
+                    @foreach (var producto in productosFiltrados)
+                    {
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">@producto.nombre_producto</h5>
+                                    <p class="card-text text-truncate">@producto.descripcion_producto</p>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="text-primary mb-0">$@producto.precio_producto.ToString("F2")</h6>
+                                        <small class="text-muted">Stock: @producto.stock_producto</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="input-group" style="max-width: 120px;">
+                                            <RadzenButton ButtonStyle="ButtonStyle.Secondary" Icon="remove"
+                                                          Click="@(() => DisminuirCantidad(producto))" Disabled="@(!EstaEnSeleccionados(producto))" />
+                                            <div class="form-control text-center">
+                                                @ObtenerCantidadSeleccionada(producto.id_producto)
+                                            </div>
+                                            <RadzenButton ButtonStyle="ButtonStyle.Primary" Icon="add"
+                                                          Click="@(() => AgregarProducto(producto))"
+                                                          Disabled="@(producto.stock_producto <= ObtenerCantidadSeleccionada(producto.id_producto))" />
+                                        </div>
+                                        <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="info"
+                                                      Click="@(() => VerDetalleProducto(producto))" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(textoBusqueda))
+            {
+                <div class="alert alert-info">No se encontraron productos con ese nombre.</div>
+            }
+            else
+            {
+                <div class="alert alert-info">Use el buscador para encontrar productos.</div>
+            }
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Resumen de Venta</h5>
+                </div>
+                <div class="card-body">
+                    @if (productosSeleccionados.Any())
+                    {
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th class="text-center">Cant.</th>
+                                        <th class="text-end">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in productosSeleccionados)
+                                    {
+                                        <tr>
+                                            <td>@item.Producto.nombre_producto</td>
+                                            <td class="text-center">@item.Cantidad</td>
+                                            <td class="text-end">@item.Subtotal.ToString("C")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="border-top pt-2">
+                            <div class="d-flex justify-content-between">
+                                <h5>Total:</h5>
+                                <h5>@totalVenta.ToString("C")</h5>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Total productos:</span>
+                                <span>@productosSeleccionados.Sum(p => p.Cantidad)</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            No hay productos seleccionados
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Recibir los managers como parámetros
+    [Parameter] public ProductoManager ProductoManager { get; set; }
+    [Parameter] public VentaManager VentaManager { get; set; }
+    [Parameter] public VentaDetalleManager VentaDetalleManager { get; set; }
+    [Parameter] public InventarioManager InventarioManager { get; set; }
+
+    private string textoBusqueda = "";
+    private List<producto> todosLosProductos = new List<producto>();
+    private List<producto> productosFiltrados = new List<producto>();
+    private List<ProductoSeleccionado> productosSeleccionados = new List<ProductoSeleccionado>();
+    private bool cargando = false;
+    private decimal totalVenta => productosSeleccionados.Sum(p => p.Subtotal);
+
+    // Cambiamos la clase ProductoSeleccionado a pública para que sea accesible desde otros componentes
+    public class ProductoSeleccionado
+    {
+        public producto Producto { get; set; }
+        public int Cantidad { get; set; } = 0;
+        public decimal Subtotal => Producto.precio_producto * Cantidad;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ProductoManager == null)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "ProductoManager no ha sido inicializado.");
+            return;
+        }
+            
+        await CargarProductos();
+    }
+
+    private async Task CargarProductos()
+    {
+        cargando = true;
+        try
+        {
+            todosLosProductos = await ProductoManager.ObtenerTodos();
+            if (todosLosProductos == null)
+            {
+                todosLosProductos = new List<producto>();
+                NotificationService.Notify(NotificationSeverity.Error, "Error", ProductoManager.Error);
+            }
+
+            // Filtrar solo productos con stock disponible
+            todosLosProductos = todosLosProductos.Where(p => p.stock_producto > 0).ToList();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void BuscarProductos()
+    {
+        if (string.IsNullOrEmpty(textoBusqueda))
+        {
+            productosFiltrados = new List<producto>();
+            return;
+        }
+
+        productosFiltrados = todosLosProductos
+            .Where(p => p.nombre_producto.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) ||
+                        p.descripcion_producto.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private void AgregarProducto(producto producto)
+    {
+        var productoSeleccionado = productosSeleccionados
+            .FirstOrDefault(p => p.Producto.id_producto == producto.id_producto);
+
+        if (productoSeleccionado != null)
+        {
+            // No superar el stock disponible
+            if (productoSeleccionado.Cantidad < producto.stock_producto)
+            {
+                productoSeleccionado.Cantidad++;
+            }
+        }
+        else
+        {
+            productosSeleccionados.Add(new ProductoSeleccionado
+            {
+                Producto = producto,
+                Cantidad = 1
+            });
+        }
+    }
+
+    private void DisminuirCantidad(producto producto)
+    {
+        var productoSeleccionado = productosSeleccionados
+            .FirstOrDefault(p => p.Producto.id_producto == producto.id_producto);
+
+        if (productoSeleccionado != null)
+        {
+            productoSeleccionado.Cantidad--;
+
+            if (productoSeleccionado.Cantidad <= 0)
+            {
+                productosSeleccionados.Remove(productoSeleccionado);
+            }
+        }
+    }
+
+    private int ObtenerCantidadSeleccionada(int idProducto)
+    {
+        var productoSeleccionado = productosSeleccionados
+            .FirstOrDefault(p => p.Producto.id_producto == idProducto);
+
+        return productoSeleccionado?.Cantidad ?? 0;
+    }
+
+    private bool EstaEnSeleccionados(producto producto)
+    {
+        return productosSeleccionados.Any(p => p.Producto.id_producto == producto.id_producto);
+    }
+
+    private async Task VerDetalleProducto(producto producto)
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "Producto", producto }
+        };
+
+        await DialogService.OpenAsync<DetalleProductoComponent>("Detalles de Producto", parameters);
+    }
+
+    private async Task FinalizarVenta()
+    {
+        if (!productosSeleccionados.Any())
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Selección vacía",
+                "Seleccione al menos un producto para realizar la venta");
+            return;
+        }
+
+        try
+        {
+            // Validar que todos los managers estén disponibles
+            if (VentaManager == null || VentaDetalleManager == null || InventarioManager == null)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error", "No se han inicializado los managers correctamente");
+                return;
+            }
+
+            // 1. Crear la venta
+            var nuevaVenta = new venta
+            {
+                fecha_hora_venta = DateTime.Now,
+                monto_total_venta = totalVenta,
+                id_usuario = Params.UsuarioConectado != null ? 1 : 0 // Ajustar según tu implementación
+            };
+
+            var ventaRegistrada = await VentaManager.Agregar(nuevaVenta);
+
+            if (ventaRegistrada == null)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error", $"No se pudo registrar la venta: {VentaManager.Error}");
+                return;
+            }
+
+            // 2. Registrar detalles y actualizar inventario
+            foreach (var item in productosSeleccionados)
+            {
+                // Registrar detalle de venta
+                var detalle = new venta_detalle
+                {
+                    id_venta = ventaRegistrada.id_venta,
+                    id_producto = item.Producto.id_producto,
+                    cantidad_vendida = item.Cantidad,
+                    precio_unitario_venta = item.Producto.precio_producto,
+                    subtotal_detalle = item.Subtotal
+                };
+
+                var detalleRegistrado = await VentaDetalleManager.Agregar(detalle);
+
+                if (detalleRegistrado == null)
+                {
+                    // Log error pero continúa
+                    Console.WriteLine($"Error al registrar detalle: {VentaDetalleManager.Error}");
+                }
+
+                // Registrar movimiento en inventario
+                await InventarioManager.RegistrarSalida(
+                    item.Producto.id_producto,
+                    item.Cantidad,
+                    $"Venta #{ventaRegistrada.id_venta}"
+                );
+            }
+
+            // 3. Mostrar ticket de venta
+            await MostrarTicketVenta(ventaRegistrada.id_venta);
+
+            // 4. Cerrar el modal y devolver el ID de la venta
+            DialogService.Close(ventaRegistrada.id_venta);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error al finalizar venta: {ex.Message}");
+        }
+    }
+
+    private async Task MostrarTicketVenta(int idVenta)
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "IdVenta", idVenta },
+            { "ProductosVendidos", productosSeleccionados },
+            { "TotalVenta", totalVenta }
+        };
+
+        await DialogService.OpenAsync<TicketVentaComponent>("Ticket de Venta", parameters);
+    }
+
+    private void CancelarVenta()
+    {
+        DialogService.Close();
+    }
+}

@@ -1,0 +1,71 @@
+﻿@using COMMON.Entidades
+@using Web.Components.Pages.Componentes
+@inject DialogService DialogService
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <h4>Ticket de Venta</h4>
+                <h5 class="text-muted">Venta #@IdVenta</h5>
+                <p>@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</p>
+            </div>
+
+            <div class="table-responsive mb-3">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-center">Cant.</th>
+                            <th class="text-end">P.Unit</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in ProductosVendidos)
+                        {
+                            <tr>
+                                <td>@item.Producto.nombre_producto</td>
+                                <td class="text-center">@item.Cantidad</td>
+                                <td class="text-end">@item.Producto.precio_producto.ToString("C")</td>
+                                <td class="text-end">@item.Subtotal.ToString("C")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3" class="text-end">Total:</th>
+                            <th class="text-end">@TotalVenta.ToString("C")</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="text-center">
+                <p>¡Gracias por su compra!</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-3">
+        <RadzenButton Text="Imprimir" Icon="print" Click="@Imprimir" ButtonStyle="ButtonStyle.Primary" class="me-2" />
+        <RadzenButton Text="Cerrar" Click="@Cerrar" ButtonStyle="ButtonStyle.Secondary" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public int IdVenta { get; set; }
+    [Parameter] public List<ModalNuevaVenta.ProductoSeleccionado> ProductosVendidos { get; set; }
+    [Parameter] public decimal TotalVenta { get; set; }
+
+    private void Imprimir()
+    {
+        // Aquí se implementaría la lógica de impresión
+        // Podrías usar JavaScript Interop para llamar a window.print()
+    }
+
+    private void Cerrar()
+    {
+        DialogService.Close();
+    }
+}

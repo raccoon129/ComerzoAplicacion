@@ -1,0 +1,162 @@
+﻿@using COMMON.Entidades
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<div class="container">
+    @if (cargando)
+    {
+        <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px" />
+    }
+    else if (venta != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Venta #@venta.id_venta</h5>
+                    <span>@venta.fecha_hora_venta.ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div><strong>Vendedor:</strong> @venta.usuario_alta</div>
+                        @if (venta.id_cliente.HasValue)
+                        {
+                            <div><strong>Cliente:</strong> @venta.id_cliente</div>
+                        }
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div><strong>Total:</strong> @venta.monto_total_venta.ToString("C")</div>
+                    </div>
+                </div>
+
+                @if (detalles != null && detalles.Any())
+                {
+                    <h5>Productos vendidos</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Precio Unit.</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var detalle in detalles)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (productosMap.ContainsKey(detalle.id_producto))
+                                            {
+                                                @productosMap[detalle.id_producto].nombre_producto
+                                            }
+                                            else
+                                            {
+                                                @detalle.id_producto
+                                            }
+                                        </td>
+                                        <td class="text-center">@detalle.cantidad_vendida</td>
+                                        <td class="text-end">@detalle.precio_unitario_venta.ToString("C")</td>
+                                        <td class="text-end">@detalle.subtotal_detalle.ToString("C")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3" class="text-end">Total:</th>
+                                    <th class="text-end">@venta.monto_total_venta.ToString("C")</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">No hay detalles disponibles para esta venta.</div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">No se encontró la información de la venta.</div>
+    }
+
+    <div class="text-center">
+        <RadzenButton Text="Cerrar" Click="@Cerrar" ButtonStyle="ButtonStyle.Secondary" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public int IdVenta { get; set; }
+    
+    // Recibir los managers como parámetros
+    [Parameter] public VentaManager VentaManager { get; set; }
+    [Parameter] public VentaDetalleManager VentaDetalleManager { get; set; }
+    [Parameter] public ProductoManager ProductoManager { get; set; }
+
+    private bool cargando = true;
+    private venta venta;
+    private List<venta_detalle> detalles;
+    private Dictionary<int, producto> productosMap = new Dictionary<int, producto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+
+        try
+        {
+            // Verificar que los managers estén disponibles
+            if (VentaManager == null || VentaDetalleManager == null || ProductoManager == null)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error", "No se han inicializado los managers correctamente");
+                return;
+            }
+            
+            // Cargar la venta
+            venta = await VentaManager.ObtenerPorId(IdVenta);
+            if (venta == null)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error",
+                    $"No se pudo cargar la venta: {VentaManager.Error}");
+                return;
+            }
+
+            // Cargar detalles
+            detalles = await VentaDetalleManager.ObtenerPorVenta(IdVenta);
+            if (detalles == null)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error",
+                    $"No se pudieron cargar los detalles: {VentaDetalleManager.Error}");
+                return;
+            }
+
+            // Cargar información de productos
+            var productos = await ProductoManager.ObtenerTodos();
+            if (productos != null)
+            {
+                productosMap = productos.ToDictionary(p => p.id_producto);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error al cargar datos: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void Cerrar()
+    {
+        DialogService.Close();
+    }
+}

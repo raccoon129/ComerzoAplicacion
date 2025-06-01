@@ -1,0 +1,45 @@
+﻿@using COMMON.Entidades
+
+<div class="container">
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title">@Producto.nombre_producto</h3>
+            <p class="card-text">@Producto.descripcion_producto</p>
+
+            <div class="mb-3">
+                <h4>$@Producto.precio_producto.ToString("F2")</h4>
+            </div>
+
+            <div class="mb-3">
+                <h5>Stock disponible:</h5>
+                <div class="bg-light p-2 rounded">
+                    @Producto.stock_producto Unidades
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Producto.notas_producto))
+            {
+                <div class="mb-3">
+                    <h5>Notas:</h5>
+                    <div class="bg-light p-2 rounded">
+                        @Producto.notas_producto
+                    </div>
+                </div>
+            }
+
+            <div class="mb-3">
+                <h5>Estado:</h5>
+                <div class="bg-light p-2 rounded">
+                    @Producto.estado_producto
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public producto Producto { get; set; }
+
+    // Ya no necesitamos InventarioManager aquí, así que simplemente lo eliminamos
+    // Si posteriormente necesitas usar InventarioManager, puedes pasarlo como parámetro
+}

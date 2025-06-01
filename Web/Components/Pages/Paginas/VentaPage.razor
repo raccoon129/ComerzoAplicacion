@@ -1,0 +1,147 @@
+﻿@page "/venta"
+@using COMMON
+@using COMMON.Entidades
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<PageTitle>Venta de Productos</PageTitle>
+
+<div class="container">
+    <h2 class="text-center mb-4">Venta de Productos</h2>
+
+    <div class="text-center mb-4">
+        <RadzenButton Text="Nueva Venta" Icon="add_shopping_cart" ButtonStyle="ButtonStyle.Primary"
+                      Click="@AbrirModalVenta" Class="my-3" />
+    </div>
+
+    <div class="mb-4">
+        <h3>Últimas ventas</h3>
+        @if (cargando)
+        {
+            <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px" />
+        }
+        else if (ultimasVentas != null && ultimasVentas.Any())
+        {
+            <RadzenDataGrid Data="@ultimasVentas" TItem="venta" AllowPaging="true" PageSize="5">
+                <Columns>
+                    <RadzenDataGridColumn TItem="venta" Property="id_venta" Title="ID" Width="70px" />
+                    <RadzenDataGridColumn TItem="venta" Property="fecha_hora_venta" Title="Fecha" FormatString="{0:dd/MM/yyyy HH:mm}" />
+                    <RadzenDataGridColumn TItem="venta" Property="monto_total_venta" Title="Total" FormatString="{0:C}" />
+                    <RadzenDataGridColumn TItem="venta" Title="Detalles" Sortable="false" Filterable="false" Width="100px">
+                        <Template Context="data">
+                            <RadzenButton ButtonStyle="ButtonStyle.Info" Icon="visibility" Size="ButtonSize.Small"
+                                          Click="@(() => VerDetalleVenta(data))" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+        else
+        {
+            <div class="alert alert-info">No hay ventas registradas.</div>
+        }
+    </div>
+</div>
+
+@code {
+    private bool cargando = false;
+    private List<venta> ultimasVentas = new List<venta>();
+    
+    // Instancias locales de managers
+    private ProductoManager _productoManager;
+    private VentaManager _ventaManager;
+    private VentaDetalleManager _ventaDetalleManager;
+    private InventarioManager _inventarioManager;
+
+    protected override void OnInitialized()
+    {
+        // Crear validadores temporales para los managers
+        var productoValidator = new DummyValidator<producto>();
+        var ventaValidator = new DummyValidator<venta>();
+        var ventaDetalleValidator = new DummyValidator<venta_detalle>();
+        var inventarioValidator = new DummyValidator<inventario>();
+        
+        // Inicializar los managers en el orden correcto (dependencias primero)
+        _productoManager = new ProductoManager(productoValidator);
+        _inventarioManager = new InventarioManager(inventarioValidator, _productoManager);
+        _ventaManager = new VentaManager(ventaValidator, _inventarioManager);
+        _ventaDetalleManager = new VentaDetalleManager(ventaDetalleValidator, _productoManager, _inventarioManager);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarUltimasVentas();
+    }
+
+    private async Task CargarUltimasVentas()
+    {
+        cargando = true;
+        try
+        {
+            var ventas = await _ventaManager.ObtenerTodos();
+            if (ventas != null)
+            {
+                ultimasVentas = ventas
+                    .OrderByDescending(v => v.fecha_hora_venta)
+                    .Take(10)
+                    .ToList();
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Error", _ventaManager.Error);
+            }
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task AbrirModalVenta()
+    {
+        // Pasar los managers como parámetros al componente
+        var parameters = new Dictionary<string, object>
+        {
+            { "ProductoManager", _productoManager },
+            { "VentaManager", _ventaManager },
+            { "VentaDetalleManager", _ventaDetalleManager },
+            { "InventarioManager", _inventarioManager }
+        };
+
+        var resultado = await DialogService.OpenAsync<ModalNuevaVenta>("Nueva Venta",
+            parameters: parameters,
+            options: new DialogOptions { Width = "90%", Height = "90%", CloseDialogOnOverlayClick = false });
+
+        if (resultado != null)
+        {
+            // Si resultado es true, actualizar la lista de ventas
+            await CargarUltimasVentas();
+
+            // Mostrar mensaje de éxito
+            NotificationService.Notify(NotificationSeverity.Success, "Venta realizada",
+                $"Venta registrada correctamente con ID #{resultado}");
+        }
+    }
+
+    private async Task VerDetalleVenta(venta venta)
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "IdVenta", venta.id_venta },
+            { "VentaManager", _ventaManager },
+            { "VentaDetalleManager", _ventaDetalleManager },
+            { "ProductoManager", _productoManager }
+        };
+
+        await DialogService.OpenAsync<DetalleVentaComponent>("Detalle de Venta", parameters);
+    }
+
+    // Validador dummy para inicializar los managers sin DI
+    public class DummyValidator<T> : FluentValidation.AbstractValidator<T>
+    {
+        public DummyValidator()
+        {
+            // Validador vacío para instanciar los managers
+        }
+    }
+}

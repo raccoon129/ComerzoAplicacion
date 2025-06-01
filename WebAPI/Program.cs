@@ -1,3 +1,8 @@
+using BIZ;
+using COMMON.Entidades;
+using COMMON.Validadores;
+using FluentValidation;
+
 namespace WebAPI
 {
     public class Program
@@ -16,6 +21,12 @@ namespace WebAPI
             // Añade estas líneas en la configuración de servicios (antes de builder.Build())
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<HttpClient>();
+
+            // Registrar managers en el orden correcto (dependencias primero)
+            builder.Services.AddScoped<ProductoManager>();
+            builder.Services.AddScoped<InventarioManager>();
+            builder.Services.AddScoped<VentaManager>();
+            builder.Services.AddScoped<VentaDetalleManager>();
 
             var app = builder.Build();
 
