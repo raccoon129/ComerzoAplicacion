@@ -3,3 +3,166 @@
 @using BIZ
 @using COMMON.Validadores
 @inject DialogService dialogService
+
+<h3>Catálogo de Inventario</h3>
+
+<RadzenButton Text="Agregar Movimiento" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new inventario()))"></RadzenButton>
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@movimientos" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" TItem="inventario">
+
+    <Columns>
+        <RadzenDataGridColumn TItem="inventario" Property="id_movimiento" Title="ID" Width="50px" />
+        <RadzenDataGridColumn TItem="inventario" Property="id_producto" Title="ID Producto" Width="80px">
+            <Template Context="data">
+                @ObtenerNombreProducto(data.id_producto)
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="inventario" Property="cantidad_movimiento" Title="Cantidad" Width="70px" />
+        <RadzenDataGridColumn TItem="inventario" Property="tipo_movimiento" Title="Tipo" Width="80px" />
+        <RadzenDataGridColumn TItem="inventario" Property="fecha_movimiento" Title="Fecha" Width="100px" FormatString="{0:dd/MM/yyyy HH:mm}" />
+        <RadzenDataGridColumn TItem="inventario" Property="descripcion_movimiento" Title="Descripción" Width="150px" />
+        <RadzenDataGridColumn TItem="inventario" Title="Acciones">
+            <Template Context="data">
+                <RadzenButton Click="@(() => Editar(data))" ButtonStyle="ButtonStyle.Warning" Icon="edit"></RadzenButton>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+<br />
+<br />
+
+@code {
+    InventarioManager inventarioManager;
+    ProductoManager productoManager;
+    List<inventario> movimientos;
+    List<producto> productos;
+
+    Dictionary<string, string> tiposMovimiento;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        inventarioManager = new InventarioManager(new inventarioValidator(), new ProductoManager(new productoValidator()));
+        productoManager = new ProductoManager(new productoValidator());
+
+        tiposMovimiento = new Dictionary<string, string>();
+        tiposMovimiento.Add("entrada", "Entrada");
+        tiposMovimiento.Add("salida", "Salida");
+
+        ActualizarTabla();
+    }
+
+    protected async void ActualizarTabla()
+    {
+        movimientos = await inventarioManager.ObtenerTodos();
+        productos = await productoManager.ObtenerTodos();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string ObtenerNombreProducto(int idProducto)
+    {
+        var producto = productos?.FirstOrDefault(p => p.id_producto == idProducto);
+        return producto != null ? producto.nombre_producto : $"Producto {idProducto}";
+    }
+
+    protected async Task Editar(inventario movimiento)
+    {
+        string titulo = movimiento.id_movimiento == 0 ? "Nuevo Movimiento" : $"Editar Movimiento #{movimiento.id_movimiento}";
+
+        // Creamos una copia local para trabajar en el diálogo
+        var movimientoEdicion = new inventario
+        {
+            id_movimiento = movimiento.id_movimiento,
+            id_producto = movimiento.id_producto,
+            cantidad_movimiento = movimiento.cantidad_movimiento,
+            tipo_movimiento = movimiento.tipo_movimiento,
+            fecha_movimiento = movimiento.fecha_movimiento != DateTime.MinValue ? movimiento.fecha_movimiento : DateTime.Now,
+            descripcion_movimiento = movimiento.descripcion_movimiento
+        };
+
+        var result = await dialogService.OpenAsync(titulo, ds => @<RadzenStack Gap="1.5rem">
+
+    <div class="row">
+        <div class="col-6">Producto</div>
+        <div class="col-3">Cantidad</div>
+        <div class="col-3">Tipo</div>
+    </div>
+    <div class="row">
+        <div class="col-6">
+            <RadzenDropDown @bind-Value="movimientoEdicion.id_producto" Data="@productos"
+                            TValue="int" TextProperty="nombre_producto" ValueProperty="id_producto" class="w-100" />
+        </div>
+        <div class="col-3">
+            <RadzenNumeric @bind-Value="movimientoEdicion.cantidad_movimiento" TValue="int" class="w-100" Min="1" />
+        </div>
+        <div class="col-3">
+            <RadzenDropDown @bind-Value="movimientoEdicion.tipo_movimiento" Data="@tiposMovimiento"
+                            TValue="string" TextProperty="Value" ValueProperty="Key" class="w-100" />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-6">Fecha</div>
+        <div class="col-6">Descripción</div>
+    </div>
+    <div class="row">
+        <div class="col-6">
+            <RadzenDatePicker @bind-Value="movimientoEdicion.fecha_movimiento" class="w-100" ShowTime="true" />
+        </div>
+        <div class="col-6">
+            <RadzenTextBox @bind-Value="movimientoEdicion.descripcion_movimiento" class="w-100" />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-6"></div>
+        <div class="col-3">
+            <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => GuardarDesdeDialog(movimientoEdicion, ds))"></RadzenButton>
+        </div>
+        <div class="col-3">
+            <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
+                          Click="@(() => ds.Close(false))"></RadzenButton>
+        </div>
+    </div>
+
+</RadzenStack>
+    , new DialogOptions()
+      {
+          Draggable = true,
+          ShowClose = true,
+          Resizable = true,
+          Width = "700px",
+          Height = "400px"
+      });
+
+        if (result == true)
+        {
+            ActualizarTabla();
+        }
+    }
+
+    protected async Task GuardarDesdeDialog(inventario movimiento, DialogService ds)
+    {
+        inventario resultado;
+        if (movimiento.id_movimiento == 0)
+        {
+            resultado = await inventarioManager.Agregar(movimiento);
+        }
+        else
+        {
+            resultado = await inventarioManager.Modificar(movimiento);
+        }
+
+        if (resultado != null)
+        {
+            ds.Close(true);
+            ActualizarTabla();
+        }
+        else
+        {
+            await dialogService.Alert(inventarioManager.Error, "Error al guardar");
+        }
+    }
+}

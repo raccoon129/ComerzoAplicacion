@@ -9,7 +9,9 @@
     <div class="row justify-content-start align-items-center vh-100 m-0">
         <div class="col-md-6 p-5">
             <RadzenCard Style="padding: 50px; max-width: 100%; box-shadow: 0 14px 15px rgba(0, 0, 0, 0.1);">
-                <h2 class="text-center mb-4">Iniciar Sesión</h2>
+                <h2 class="text-lg-start mb-4">Organice las ventas en su comercio</h2>
+                <h4 class="text-lg-start mb-4">¡Empecemos!</h4>
+                <h5 class="text-lg-start mb-4"><strong>Iniciar Sesión</strong></h5>
 
 
                 @if (!string.IsNullOrEmpty(errorMensaje))
@@ -20,11 +22,11 @@
                 }
                 <center>
                     <RadzenLabel Text="Usuario" /><br />
-                    <RadzenTextBox @bind-Value=@usuario class="w-100" />
+                    <RadzenTextBox @bind-Value=@usuario Placeholder="juanPerez" class="w-100" />
                     <br />
                     <br />
                     <RadzenLabel Text="Constraseña" /><br />
-                    <RadzenPassword @bind-Value=@contrasena class="w-100" />
+                    <RadzenPassword @bind-Value=@contrasena Placeholder="*******" class="w-100" />
 
                     <br />
                     <br />
@@ -34,7 +36,10 @@
                                   Icon="login"
                                   ButtonStyle="ButtonStyle.Primary"
                                   class="w-100" IsBusy=cargando />
+                    
                 </center>
+                <br />
+                <h6 class="text-lg-start mb-4">Comerzo Versión 1.0</h6>
             </RadzenCard>
         </div>
     </div>
@@ -73,7 +78,7 @@
             if (_usuarioConectado != null)
             {
                 BIZ.sesionUsuario.usuarioConectado = _usuarioConectado;
-                Navegador.NavigateTo("/dashboard");
+                Navegador.NavigateTo("/inicio");
             }
             else
             {

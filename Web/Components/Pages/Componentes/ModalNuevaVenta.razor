@@ -298,6 +298,18 @@
         await DialogService.OpenAsync<DetalleProductoComponent>("Detalles de Producto", parameters);
     }
 
+    /// <summary>
+    /// Procesa y finaliza la venta actual.
+    /// Este método sigue los siguientes pasos:
+    /// 1. Crea un registro de 'venta' con la información general de la transacción.
+    /// 2. Para cada producto seleccionado en la venta:
+    ///    a. Registra un 'venta_detalle' con los datos específicos del producto vendido (cantidad, precio).
+    ///    b. Llama a 'InventarioManager.RegistrarSalida' para:
+    ///       i. Crear un movimiento de 'inventario' de tipo 'salida'.
+    ///       ii. Actualizar el 'stock_producto' en la entidad 'producto', disminuyendo la cantidad vendida.
+    /// 3. Muestra un ticket de venta resumen.
+    /// 4. Cierra el modal de nueva venta.
+    /// </summary>
     private async Task FinalizarVenta()
     {
         if (!productosSeleccionados.Any())
@@ -316,14 +328,19 @@
                 return;
             }
 
-            // 1. Crear la venta
+            // Paso 1: Crear la entidad 'venta'
+            // Esta entidad representa la cabecera de la transacción.
             var nuevaVenta = new venta
             {
                 fecha_hora_venta = DateTime.Now,
                 monto_total_venta = totalVenta,
-                id_usuario = Params.UsuarioConectado != null ? 1 : 0 // Ajustar según tu implementación
+                // TODO: Ajustar la asignación de id_usuario según la implementación real del sistema de usuarios.
+                // Actualmente, se asigna 1 si Params.UsuarioConectado no es null, o 0 en caso contrario.
+                // Esto debería reemplazarse por el ID real del usuario autenticado.
+                id_usuario = Params.UsuarioConectado != null ? 1 : 0 
             };
 
+            // Guardar la venta en la base de datos.
             var ventaRegistrada = await VentaManager.Agregar(nuevaVenta);
 
             if (ventaRegistrada == null)
@@ -332,44 +349,66 @@
                 return;
             }
 
-            // 2. Registrar detalles y actualizar inventario
+            // Paso 2: Registrar los detalles de la venta y actualizar el inventario para cada producto.
             foreach (var item in productosSeleccionados)
             {
-                // Registrar detalle de venta
+                // Paso 2.a: Crear la entidad 'venta_detalle'.
+                // Cada 'venta_detalle' corresponde a un ítem específico de la venta.
                 var detalle = new venta_detalle
                 {
-                    id_venta = ventaRegistrada.id_venta,
+                    id_venta = ventaRegistrada.id_venta, // Enlaza con la venta recién creada.
                     id_producto = item.Producto.id_producto,
                     cantidad_vendida = item.Cantidad,
                     precio_unitario_venta = item.Producto.precio_producto,
                     subtotal_detalle = item.Subtotal
                 };
 
+                // Guardar el detalle de la venta.
+                // VentaDetalleManager.Agregar se encarga de las validaciones y de guardar el registro.
+                // La lógica de actualización de inventario ya no reside en VentaDetalleManager.Agregar.
                 var detalleRegistrado = await VentaDetalleManager.Agregar(detalle);
 
                 if (detalleRegistrado == null)
                 {
-                    // Log error pero continúa
-                    Console.WriteLine($"Error al registrar detalle: {VentaDetalleManager.Error}");
+                    // Si falla el registro de un detalle, se registra el error y se continúa con los demás ítems.
+                    // Considerar una estrategia de rollback o compensación si un detalle no se puede registrar.
+                    Console.WriteLine($"Error al registrar detalle para producto ID {item.Producto.id_producto}: {VentaDetalleManager.Error}");
+                    // Podría ser preferible abortar la venta si un detalle falla.
+                    // NotificationService.Notify(NotificationSeverity.Error, "Error", $"No se pudo registrar el detalle para {item.Producto.nombre_producto}: {VentaDetalleManager.Error}");
+                    // return; // Descomentar para abortar la venta completa si un detalle falla.
                 }
 
-                // Registrar movimiento en inventario
-                await InventarioManager.RegistrarSalida(
+                // Paso 2.b: Registrar la salida de inventario.
+                // InventarioManager.RegistrarSalida se encarga de:
+                // 1. Crear un registro en la tabla 'inventario' (movimiento de salida).
+                // 2. Actualizar el 'stock_producto' en la tabla 'producto'.
+                var resultadoSalida = await InventarioManager.RegistrarSalida(
                     item.Producto.id_producto,
                     item.Cantidad,
-                    $"Venta #{ventaRegistrada.id_venta}"
+                    $"Venta #{ventaRegistrada.id_venta}" // Descripción para el movimiento de inventario.
                 );
+
+                if (resultadoSalida == null)
+                {
+                    // Si falla el registro de salida de inventario, notificar y considerar el impacto.
+                    // El stock del producto podría no haberse actualizado correctamente.
+                    Console.WriteLine($"Error al registrar salida de inventario para producto ID {item.Producto.id_producto}: {InventarioManager.Error}");
+                    NotificationService.Notify(NotificationSeverity.Warning, "Advertencia de Inventario", 
+                        $"No se pudo actualizar el inventario para {item.Producto.nombre_producto}: {InventarioManager.Error}. El stock podría ser incorrecto.");
+                    // Dependiendo de la criticidad, se podría abortar la venta o continuar con advertencia.
+                }
             }
 
-            // 3. Mostrar ticket de venta
+            // Paso 3: Mostrar el ticket de venta.
+            // Esto se hace después de que todos los detalles y movimientos de inventario se hayan procesado.
             await MostrarTicketVenta(ventaRegistrada.id_venta);
 
-            // 4. Cerrar el modal y devolver el ID de la venta
+            // Paso 4: Cerrar el modal y, opcionalmente, devolver el ID de la venta.
             DialogService.Close(ventaRegistrada.id_venta);
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error al finalizar venta: {ex.Message}");
+            NotificationService.Notify(NotificationSeverity.Error, "Error Crítico", $"Error inesperado al finalizar la venta: {ex.Message}");
         }
     }
 
@@ -378,10 +417,11 @@
         var parameters = new Dictionary<string, object>
         {
             { "IdVenta", idVenta },
-            { "ProductosVendidos", productosSeleccionados },
-            { "TotalVenta", totalVenta }
+            { "ProductosVendidos", productosSeleccionados }, // Pasa la lista de productos seleccionados para el ticket
+            { "TotalVenta", totalVenta } // Pasa el total para el ticket
         };
 
+        // Abre el componente TicketVentaComponent como un diálogo.
         await DialogService.OpenAsync<TicketVentaComponent>("Ticket de Venta", parameters);
     }
 

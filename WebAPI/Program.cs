@@ -22,11 +22,6 @@ namespace WebAPI
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<HttpClient>();
 
-            // Registrar managers en el orden correcto (dependencias primero)
-            builder.Services.AddScoped<ProductoManager>();
-            builder.Services.AddScoped<InventarioManager>();
-            builder.Services.AddScoped<VentaManager>();
-            builder.Services.AddScoped<VentaDetalleManager>();
 
             var app = builder.Build();
 

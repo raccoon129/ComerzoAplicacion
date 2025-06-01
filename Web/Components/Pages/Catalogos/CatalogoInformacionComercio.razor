@@ -1,0 +1,151 @@
+﻿@page "/informacion"
+@using COMMON.Entidades
+@using BIZ
+@using COMMON.Validadores
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<h3>Información del Comercio</h3>
+
+<br />
+
+@if (infoComercio == null)
+{
+    <RadzenButton Text="Configurar información" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new informacion_comercio { fecha_creacion = DateTime.Now }))"></RadzenButton>
+}
+else
+{
+    <RadzenCard Style="margin-bottom: 20px">
+        <div class="row">
+            <div class="col-md-6">
+                <h4>Nombre del Comercio</h4>
+                <p class="lead">@infoComercio.nombre_comercio</p>
+
+                <h5>Razón Social</h5>
+                <p>@(infoComercio.razon_social ?? "No especificado")</p>
+
+                <h5>Fecha de creación</h5>
+                <p>@infoComercio.fecha_creacion.ToString("dd/MM/yyyy")</p>
+            </div>
+            <div class="col-md-6">
+                <h4>Descripción</h4>
+                <p>@infoComercio.descripcion</p>
+
+                <h5>Encargado</h5>
+                <p>@infoComercio.encargado</p>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12 text-end">
+                <RadzenButton Text="Editar" ButtonStyle="ButtonStyle.Warning" Click="@(() => Editar(infoComercio))"></RadzenButton>
+            </div>
+        </div>
+    </RadzenCard>
+}
+
+<br />
+<br />
+
+@code {
+    InformacionComercioManager infoComercioManager;
+    informacion_comercio infoComercio;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Usamos el validador específico para información del comercio
+        infoComercioManager = new InformacionComercioManager(new informacionComercioValidator());
+
+        await ActualizarDatos();
+    }
+
+    protected async Task ActualizarDatos()
+    {
+        infoComercio = await infoComercioManager.ObtenerInformacionComercio();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected async Task Editar(informacion_comercio info)
+    {
+        string titulo = infoComercio == null ? "Configurar Información del Comercio" : "Editar Información del Comercio";
+
+        // Creamos una copia local para trabajar en el diálogo
+        var infoEdicion = new informacion_comercio
+        {
+            nombre_comercio = info.nombre_comercio,
+            descripcion = info.descripcion,
+            fecha_creacion = info.fecha_creacion,
+            razon_social = info.razon_social,
+            encargado = info.encargado
+        };
+
+        var result = await DialogService.OpenAsync(titulo, ds => @<RadzenStack Gap="1.5rem">
+
+    <div class="row">
+        <div class="col-6">Nombre del Comercio</div>
+        <div class="col-6">Razón Social</div>
+    </div>
+    <div class="row">
+        <div class="col-6"><RadzenTextBox @bind-Value="infoEdicion.nombre_comercio" class="w-100" Placeholder="Nombre del comercio (requerido)"></RadzenTextBox></div>
+        <div class="col-6"><RadzenTextBox @bind-Value="infoEdicion.razon_social" class="w-100" Placeholder="Razón social (opcional)"></RadzenTextBox></div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">Descripción</div>
+    </div>
+    <div class="row">
+        <div class="col-12"><RadzenTextArea @bind-Value="infoEdicion.descripcion" class="w-100" Rows="3" Placeholder="Descripción del comercio (mínimo 10 caracteres)"></RadzenTextArea></div>
+    </div>
+
+    <div class="row">
+        <div class="col-6">Fecha de Creación</div>
+        <div class="col-6">Encargado</div>
+    </div>
+    <div class="row">
+        <div class="col-6"><RadzenDatePicker @bind-Value="infoEdicion.fecha_creacion" class="w-100" DateFormat="dd/MM/yyyy" Max="DateTime.Now"></RadzenDatePicker></div>
+        <div class="col-6"><RadzenNumeric @bind-Value="infoEdicion.encargado" class="w-100" Min="1" Placeholder="ID del encargado"></RadzenNumeric></div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-6"></div>
+        <div class="col-3">
+            <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => GuardarDesdeDialog(infoEdicion, ds))"></RadzenButton>
+        </div>
+        <div class="col-3">
+            <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
+                          Click="@(() => ds.Close(false))"></RadzenButton>
+        </div>
+    </div>
+
+</RadzenStack>
+        , new DialogOptions()
+          {
+              Draggable = true,
+              ShowClose = true,
+              Resizable = true,
+              Width = "800px",
+              Height = "500px"
+          });
+
+        if (result == true)
+        {
+            await ActualizarDatos();
+        }
+    }
+
+    protected async Task GuardarDesdeDialog(informacion_comercio info, DialogService ds)
+    {
+        var resultado = await infoComercioManager.GuardarInformacionComercio(info);
+
+        if (resultado != null)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Información del comercio guardada correctamente");
+            ds.Close(true);
+            await ActualizarDatos();
+        }
+        else
+        {
+            await DialogService.Alert(infoComercioManager.Error, "Error al guardar");
+        }
+    }
+}

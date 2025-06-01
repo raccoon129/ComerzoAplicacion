@@ -18,6 +18,61 @@ namespace BIZ
             _productoManager = productoManager;
         }
 
+        public override async Task<inventario> Agregar(inventario entidad)
+        {
+            try
+            {
+                if (entidad.cantidad_movimiento <= 0)
+                {
+                    Error = "La cantidad debe ser mayor a cero";
+                    return null;
+                }
+
+                if (string.IsNullOrEmpty(entidad.tipo_movimiento))
+                {
+                    Error = "Debe seleccionar un tipo de movimiento";
+                    return null;
+                }
+
+                if (entidad.fecha_movimiento == DateTime.MinValue)
+                {
+                    entidad.fecha_movimiento = DateTime.Now;
+                }
+
+                if (string.IsNullOrEmpty(entidad.descripcion_movimiento))
+                {
+                    entidad.descripcion_movimiento = $"{entidad.tipo_movimiento} de inventario sin descripción detallada";
+                }
+
+                var resultadoMovimiento = await base.Agregar(entidad); // Llama al Agregar de GenericManager
+
+                if (resultadoMovimiento != null && _productoManager != null)
+                {
+                    string tipoMovimientoNormalizado = entidad.tipo_movimiento.ToLowerInvariant();
+
+                    if (tipoMovimientoNormalizado == "entrada")
+                    {
+                        await ActualizarStockProducto(entidad.id_producto, entidad.cantidad_movimiento, true);
+                    }
+                    else if (tipoMovimientoNormalizado == "salida")
+                    {
+                        // Para el método Agregar genérico, si es una salida, se actualiza el stock.
+                        // La verificación estricta de stock suficiente antes de registrar la salida
+                        // se maneja en el método RegistrarSalida.
+                        await ActualizarStockProducto(entidad.id_producto, entidad.cantidad_movimiento, false);
+                    }
+                }
+                return resultadoMovimiento;
+            }
+            catch (Exception ex)
+            {
+                Error = $"Error al registrar movimiento: {ex.Message}";
+                return null;
+            }
+        }
+
+
+
         /// <summary>
         /// Registra un movimiento de entrada en el inventario
         /// </summary>

@@ -13,10 +13,13 @@ namespace BIZ
     /// </summary>
     public class VentaDetalleManager : GenericManager<venta_detalle>
     {
+        // Aunque _productoManager e _inventarioManager no se usen directamente en Agregar
+        // tras el cambio, se mantienen por si son necesarios para otras funcionalidades
+        // o futuras extensiones del VentaDetalleManager.
         private readonly ProductoManager _productoManager;
         private readonly InventarioManager _inventarioManager;
-        
-        public VentaDetalleManager(AbstractValidator<venta_detalle> validador, 
+
+        public VentaDetalleManager(AbstractValidator<venta_detalle> validador,
                                   ProductoManager productoManager = null,
                                   InventarioManager inventarioManager = null) : base(validador)
         {
@@ -25,7 +28,9 @@ namespace BIZ
         }
 
         /// <summary>
-        /// Sobrescribe el método Agregar para añadir lógica específica de detalles de venta
+        /// Sobrescribe el método Agregar para añadir lógica específica de detalles de venta.
+        /// La actualización del inventario y stock del producto se maneja externamente
+        /// (por ejemplo, en el proceso de finalizar venta que llama a InventarioManager.RegistrarSalida).
         /// </summary>
         public override async Task<venta_detalle> Agregar(venta_detalle entidad)
         {
@@ -37,14 +42,19 @@ namespace BIZ
                     Error = "La cantidad vendida debe ser mayor que cero";
                     return null;
                 }
-                
+
                 // Calcular el subtotal si no se proporcionó
                 if (entidad.subtotal_detalle == 0)
                 {
                     entidad.subtotal_detalle = entidad.precio_unitario_venta * entidad.cantidad_vendida;
                 }
-                
-                // Actualizar el inventario si hay un gestor de inventario disponible
+
+                // La lógica de actualización de inventario se ha centralizado.
+                // Ya no se crea el movimiento de inventario directamente aquí para evitar duplicidad,
+                // ya que el proceso de venta (ej. ModalNuevaVenta) llamará a
+                // InventarioManager.RegistrarSalida, que maneja tanto el movimiento
+                // como la actualización del stock del producto.
+                /*
                 if (_inventarioManager != null && _productoManager != null)
                 {
                     // Crear movimiento de inventario de salida
@@ -59,7 +69,8 @@ namespace BIZ
                     
                     await _inventarioManager.Agregar(movimientoInventario);
                 }
-                
+                */
+
                 // Guardar el detalle de venta usando el método base
                 return await base.Agregar(entidad);
             }
@@ -69,7 +80,7 @@ namespace BIZ
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Método para obtener todos los detalles de una venta específica
         /// </summary>
@@ -82,7 +93,7 @@ namespace BIZ
                 {
                     return null;
                 }
-                
+
                 return detalles.FindAll(d => d.id_venta == idVenta);
             }
             catch (Exception ex)
@@ -91,8 +102,6 @@ namespace BIZ
                 return null;
             }
         }
-
-
 
         /// <summary>
         /// Obtiene los detalles de una venta específica

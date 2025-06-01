@@ -5,7 +5,7 @@ using WebAPI;
 
 namespace WebApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/informacion_comercio")]
     [ApiController]
     public class informacionComercioController : GenericController<informacion_comercio>
     {

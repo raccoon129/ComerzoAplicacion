@@ -6,30 +6,41 @@
 
 <h3>Catálogo de Productos</h3>
 
-<br />
+<div class="d-flex justify-content-between mb-3">
+    <RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new producto()))"></RadzenButton>
+</div>
 
-<RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new producto()))"></RadzenButton>
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-                Data="@productos" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" 
+                FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="8" AllowPaging="true" 
+                PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@productos" ColumnWidth="auto" LogicalFilterOperator="LogicalFilterOperator.Or">
 
     <Columns>
-        <RadzenDataGridColumn Property="id_producto" Title="ID" Width="50px" />
-        <RadzenDataGridColumn Property="nombre_producto" Title="Nombre" Width="100px" />
-        <RadzenDataGridColumn Property="descripcion_producto" Title="Descripción" Width="150px" />
-        <RadzenDataGridColumn Property="precio_producto" Title="Precio" Width="70px" />
-        <RadzenDataGridColumn Property="stock_producto" Title="Stock" Width="60px" />
-        <RadzenDataGridColumn Property="estado_producto" Title="Estado" Width="80px" />
-        <RadzenDataGridColumn Title="Acciones">
+        <RadzenDataGridColumn Property="id_producto" Title="ID" Width="70px" TextAlign="TextAlign.Center" />
+        <RadzenDataGridColumn Property="nombre_producto" Title="Nombre" Width="200px" />
+        <RadzenDataGridColumn Property="descripcion_producto" Title="Descripción" Width="250px" />
+        <RadzenDataGridColumn Property="precio_producto" Title="Precio" Width="100px" FormatString="{0:C}" TextAlign="TextAlign.Right" />
+        <RadzenDataGridColumn Property="stock_producto" Title="Stock" Width="80px" TextAlign="TextAlign.Center" />
+        <RadzenDataGridColumn Property="estado_producto" Title="Estado" Width="120px">
             <Template Context="data">
-                <RadzenButton Click="@(() => Editar((producto)data))" ButtonStyle="ButtonStyle.Warning" Icon="edit"></RadzenButton>
-                <RadzenButton Click="@(() => Eliminar((producto)data))" ButtonStyle="ButtonStyle.Danger" Icon="delete"></RadzenButton>
+                @{
+                    var producto = (producto)data;
+                    var estado = estadosProducto.ContainsKey(producto.estado_producto) ? estadosProducto[producto.estado_producto] : producto.estado_producto;
+                    
+                    <RadzenBadge BadgeStyle="@(producto.estado_producto == "activo" ? BadgeStyle.Success : 
+                                             producto.estado_producto == "agotado" ? BadgeStyle.Warning : BadgeStyle.Danger)" 
+                                  Text="@estado" />
+                }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Title="Acciones" Width="120px" TextAlign="TextAlign.Center">
+            <Template Context="data">
+                <RadzenButton Click="@(() => Editar((producto)data))" ButtonStyle="ButtonStyle.Warning" Icon="edit" Size="ButtonSize.Small" />
+                <RadzenButton Click="@(() => Eliminar((producto)data))" ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" class="ms-1" />
             </Template>
         </RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
-
-<br />
-<br />
 
 @code {
     ProductoManager productoManager;
@@ -72,49 +83,54 @@
         };
 
         var result = await dialogService.OpenAsync(titulo, ds => @<RadzenStack Gap="1.5rem">
-
-        <div class="row">
-            <div class="col-6">Nombre del Producto</div>
-            <div class="col-6">Descripción</div>
-        </div>
-        <div class="row">
-            <div class="col-6"><RadzenTextBox @bind-Value="productoEdicion.nombre_producto" class="w-100"></RadzenTextBox></div>
-            <div class="col-6"><RadzenTextBox @bind-Value="productoEdicion.descripcion_producto" class="w-100"></RadzenTextBox></div>
-        </div>
-
-        <div class="row">
-            <div class="col-4">Precio</div>
-            <div class="col-4">Stock</div>
-            <div class="col-4">Estado</div>
-        </div>
-        <div class="row">
-            <div class="col-4"><RadzenNumeric @bind-Value="productoEdicion.precio_producto" TValue="decimal" class="w-100"></RadzenNumeric></div>
-            <div class="col-4"><RadzenNumeric @bind-Value="productoEdicion.stock_producto" TValue="int" class="w-100"></RadzenNumeric></div>
-            <div class="col-4">
-                <RadzenDropDown @bind-Value="productoEdicion.estado_producto" Data="@estadosProducto" TValue="string" TextProperty="Value" ValueProperty="Key" class="w-100"></RadzenDropDown>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre del Producto</label>
+                        <RadzenTextBox @bind-Value="productoEdicion.nombre_producto" class="w-100"></RadzenTextBox>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Precio</label>
+                            <RadzenNumeric @bind-Value="productoEdicion.precio_producto" TValue="decimal" class="w-100"></RadzenNumeric>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Stock</label>
+                            <RadzenNumeric @bind-Value="productoEdicion.stock_producto" TValue="int" class="w-100"></RadzenNumeric>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Estado</label>
+                        <RadzenDropDown @bind-Value="productoEdicion.estado_producto" 
+                                       Data="@estadosProducto" 
+                                       TValue="string" 
+                                       TextProperty="Value" 
+                                       ValueProperty="Key" 
+                                       class="w-100">
+                        </RadzenDropDown>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Descripción</label>
+                        <RadzenTextBox @bind-Value="productoEdicion.descripcion_producto" class="w-100" Multiline="true" Rows="3"></RadzenTextBox>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notas</label>
+                        <RadzenTextBox @bind-Value="productoEdicion.notas_producto" class="w-100" Multiline="true" Rows="5"></RadzenTextBox>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="row">
-            <div class="col-12">Notas</div>
-        </div>
-        <div class="row">
-            <div class="col-12"><RadzenTextBox @bind-Value="productoEdicion.notas_producto" class="w-100" Multiline="true" Rows="3"></RadzenTextBox></div>
-        </div>
-
-        <div class="row">
-            <div class="col-6"></div>
-            <div class="col-3">
-                <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
-                              Click="@(() => GuardarDesdeDialog(productoEdicion, ds))"></RadzenButton>
+            <div class="d-flex justify-content-end mt-3">
+                <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary" Click="@(() => ds.Close(false))" class="me-2"></RadzenButton>
+                <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary" Click="@(() => GuardarDesdeDialog(productoEdicion, ds))"></RadzenButton>
             </div>
-            <div class="col-3">
-                <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
-                              Click="@(() => ds.Close(false))"></RadzenButton>
-            </div>
-        </div>
-
-    </RadzenStack>
+        </RadzenStack>
         , new DialogOptions()
         {
             Draggable = true,
