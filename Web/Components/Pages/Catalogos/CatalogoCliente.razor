@@ -8,7 +8,16 @@
 
 <br />
 
-<RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="(() => Editar(new cliente()))"></RadzenButton>
+@if (cargando)
+{
+
+    <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px; width: 100%;" />
+}
+else
+{
+    
+<RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new cliente()))"></RadzenButton>
+
 <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
                 Data="@clientes" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
 
@@ -19,19 +28,21 @@
         <RadzenDataGridColumn Property="direccion_cliente" Title="Dirección" Width="200px" />
         <RadzenDataGridColumn Title="Acciones">
             <Template Context="data">
-                <RadzenButton Click="(() => Editar(data))" ButtonStyle="ButtonStyle.Warning" Icon="edit"></RadzenButton>
-                <RadzenButton Click="(() => Eliminar(data))" ButtonStyle="ButtonStyle.Danger" Icon="delete"></RadzenButton>
+                <RadzenButton Click="@(() => Editar(data))" ButtonStyle="ButtonStyle.Warning" Icon="edit"></RadzenButton>
+                <RadzenButton Click="@(() => Eliminar(data))" ButtonStyle="ButtonStyle.Danger" Icon="delete"></RadzenButton>
             </Template>
         </RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
 
+}
 <br />
 <br />
 
 @code {
     ClienteManager clienteManager;
     List<cliente> clientes;
+    private bool cargando = false;
 
     protected override void OnInitialized()
     {
@@ -42,7 +53,9 @@
 
     protected async void ActualizarTabla()
     {
+        cargando = true;
         clientes = await clienteManager.ObtenerTodos();
+        cargando = false;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -52,43 +65,43 @@
 
         var result = await dialogService.OpenAsync(titulo, ds => @<RadzenStack Gap="1.5rem">
 
-    <div class="row">
-        <div class="col-12">Nombre del Cliente</div>
-    </div>
-    <div class="row">
-        <div class="col-12"><RadzenTextBox @bind-Value="cliente.nombre_cliente" class="w-100"></RadzenTextBox></div>
-    </div>
+            <div class="row">
+                <div class="col-12">Nombre del Cliente</div>
+            </div>
+            <div class="row">
+                <div class="col-12"><RadzenTextBox @bind-Value="cliente.nombre_cliente" class="w-100"></RadzenTextBox></div>
+            </div>
 
-    <div class="row">
-        <div class="col-6">Teléfono</div>
-        <div class="col-6">Dirección</div>
-    </div>
-    <div class="row">
-        <div class="col-6"><RadzenTextBox @bind-Value="cliente.telefono_cliente" class="w-100"></RadzenTextBox></div>
-        <div class="col-6"><RadzenTextBox @bind-Value="cliente.direccion_cliente" class="w-100"></RadzenTextBox></div>
-    </div>
+            <div class="row">
+                <div class="col-6">Teléfono</div>
+                <div class="col-6">Dirección</div>
+            </div>
+            <div class="row">
+                <div class="col-6"><RadzenTextBox @bind-Value="cliente.telefono_cliente" class="w-100"></RadzenTextBox></div>
+                <div class="col-6"><RadzenTextBox @bind-Value="cliente.direccion_cliente" class="w-100"></RadzenTextBox></div>
+            </div>
 
-    <div class="row">
-        <div class="col-6"></div>
-        <div class="col-3">
-            <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
-                          Click="(()=>Guardar(cliente))"></RadzenButton>
-        </div>
-        <div class="col-3">
-            <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
-                          Click="(()=>ds.Close(false))"></RadzenButton>
-        </div>
-    </div>
+            <div class="row">
+                <div class="col-6"></div>
+                <div class="col-3">
+                    <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
+                                  Click="@(()=>Guardar(cliente))"></RadzenButton>
+                </div>
+                <div class="col-3">
+                    <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
+                                  Click="@(()=>ds.Close(false))"></RadzenButton>
+                </div>
+            </div>
 
-</RadzenStack>
+        </RadzenStack>
         , new DialogOptions()
-          {
-              Draggable = true,
-              ShowClose = true,
-              Resizable = true,
-              Width = "700px",
-              Height = "400px"
-          });
+        {
+            Draggable = true,
+            ShowClose = true,
+            Resizable = true,
+            Width = "700px",
+            Height = "400px"
+        });
 
         if (result == true)
         {

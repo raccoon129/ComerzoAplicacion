@@ -5,6 +5,13 @@
 @inject DialogService dialogService
 
 <h3>Catálogo de Inventario</h3>
+<br />
+@if (cargando)
+{
+
+    <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px; width: 100%;" />
+}
+else{
 
 <RadzenButton Text="Agregar Movimiento" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new inventario()))"></RadzenButton>
 <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
@@ -29,6 +36,7 @@
     </Columns>
 </RadzenDataGrid>
 
+}
 <br />
 <br />
 
@@ -37,6 +45,7 @@
     ProductoManager productoManager;
     List<inventario> movimientos;
     List<producto> productos;
+    private bool cargando = false;
 
     Dictionary<string, string> tiposMovimiento;
 
@@ -55,8 +64,10 @@
 
     protected async void ActualizarTabla()
     {
+        cargando = true;
         movimientos = await inventarioManager.ObtenerTodos();
         productos = await productoManager.ObtenerTodos();
+        cargando = false;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -83,59 +94,59 @@
 
         var result = await dialogService.OpenAsync(titulo, ds => @<RadzenStack Gap="1.5rem">
 
-    <div class="row">
-        <div class="col-6">Producto</div>
-        <div class="col-3">Cantidad</div>
-        <div class="col-3">Tipo</div>
-    </div>
-    <div class="row">
-        <div class="col-6">
-            <RadzenDropDown @bind-Value="movimientoEdicion.id_producto" Data="@productos"
-                            TValue="int" TextProperty="nombre_producto" ValueProperty="id_producto" class="w-100" />
-        </div>
-        <div class="col-3">
-            <RadzenNumeric @bind-Value="movimientoEdicion.cantidad_movimiento" TValue="int" class="w-100" Min="1" />
-        </div>
-        <div class="col-3">
-            <RadzenDropDown @bind-Value="movimientoEdicion.tipo_movimiento" Data="@tiposMovimiento"
-                            TValue="string" TextProperty="Value" ValueProperty="Key" class="w-100" />
-        </div>
-    </div>
+            <div class="row">
+                <div class="col-6">Producto</div>
+                <div class="col-3">Cantidad</div>
+                <div class="col-3">Tipo</div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <RadzenDropDown @bind-Value="movimientoEdicion.id_producto" Data="@productos"
+                                    TValue="int" TextProperty="nombre_producto" ValueProperty="id_producto" class="w-100" />
+                </div>
+                <div class="col-3">
+                    <RadzenNumeric @bind-Value="movimientoEdicion.cantidad_movimiento" TValue="int" class="w-100" Min="1" />
+                </div>
+                <div class="col-3">
+                    <RadzenDropDown @bind-Value="movimientoEdicion.tipo_movimiento" Data="@tiposMovimiento"
+                                    TValue="string" TextProperty="Value" ValueProperty="Key" class="w-100" />
+                </div>
+            </div>
 
-    <div class="row">
-        <div class="col-6">Fecha</div>
-        <div class="col-6">Descripción</div>
-    </div>
-    <div class="row">
-        <div class="col-6">
-            <RadzenDatePicker @bind-Value="movimientoEdicion.fecha_movimiento" class="w-100" ShowTime="true" />
-        </div>
-        <div class="col-6">
-            <RadzenTextBox @bind-Value="movimientoEdicion.descripcion_movimiento" class="w-100" />
-        </div>
-    </div>
+            <div class="row">
+                <div class="col-6">Fecha</div>
+                <div class="col-6">Descripción</div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <RadzenDatePicker @bind-Value="movimientoEdicion.fecha_movimiento" class="w-100" ShowTime="true" />
+                </div>
+                <div class="col-6">
+                    <RadzenTextBox @bind-Value="movimientoEdicion.descripcion_movimiento" class="w-100" />
+                </div>
+            </div>
 
-    <div class="row">
-        <div class="col-6"></div>
-        <div class="col-3">
-            <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
-                          Click="@(() => GuardarDesdeDialog(movimientoEdicion, ds))"></RadzenButton>
-        </div>
-        <div class="col-3">
-            <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
-                          Click="@(() => ds.Close(false))"></RadzenButton>
-        </div>
-    </div>
+            <div class="row">
+                <div class="col-6"></div>
+                <div class="col-3">
+                    <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
+                                  Click="@(() => GuardarDesdeDialog(movimientoEdicion, ds))"></RadzenButton>
+                </div>
+                <div class="col-3">
+                    <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
+                                  Click="@(() => ds.Close(false))"></RadzenButton>
+                </div>
+            </div>
 
-</RadzenStack>
-    , new DialogOptions()
-      {
-          Draggable = true,
-          ShowClose = true,
-          Resizable = true,
-          Width = "700px",
-          Height = "400px"
-      });
+        </RadzenStack>
+        , new DialogOptions()
+        {
+            Draggable = true,
+            ShowClose = true,
+            Resizable = true,
+            Width = "700px",
+            Height = "400px"
+        });
 
         if (result == true)
         {

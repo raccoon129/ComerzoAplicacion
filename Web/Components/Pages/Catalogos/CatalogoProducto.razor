@@ -2,16 +2,25 @@
 @using COMMON.Entidades
 @using BIZ
 @using COMMON.Validadores
-
+@inject DialogService dialogService
 
 <h3>Catálogo de Productos</h3>
+<br />
+@if (cargando)
+{
 
+
+    <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px; width: 100%;" />
+}
+else
+{
+    
 <div class="d-flex justify-content-between mb-3">
     <RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new producto()))"></RadzenButton>
 </div>
 
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" 
-                FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="8" AllowPaging="true" 
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false"
+                FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="8" AllowPaging="true"
                 PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
                 Data="@productos" ColumnWidth="auto" LogicalFilterOperator="LogicalFilterOperator.Or">
 
@@ -26,9 +35,9 @@
                 @{
                     var producto = (producto)data;
                     var estado = estadosProducto.ContainsKey(producto.estado_producto) ? estadosProducto[producto.estado_producto] : producto.estado_producto;
-                    
-                    <RadzenBadge BadgeStyle="@(producto.estado_producto == "activo" ? BadgeStyle.Success : 
-                                             producto.estado_producto == "agotado" ? BadgeStyle.Warning : BadgeStyle.Danger)" 
+
+                    <RadzenBadge BadgeStyle="@(producto.estado_producto == "activo" ? BadgeStyle.Success :
+                                             producto.estado_producto == "agotado" ? BadgeStyle.Warning : BadgeStyle.Danger)"
                                   Text="@estado" />
                 }
             </Template>
@@ -42,10 +51,12 @@
     </Columns>
 </RadzenDataGrid>
 
+}
 @code {
     ProductoManager productoManager;
     List<producto> productos;
     Dictionary<string, string> estadosProducto;
+    private bool cargando = false;
 
     protected override void OnInitialized()
     {
@@ -62,7 +73,9 @@
 
     protected async void ActualizarTabla()
     {
+        cargando = true;
         productos = await productoManager.ObtenerTodos();
+        cargando = false;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -89,7 +102,7 @@
                         <label class="form-label fw-bold">Nombre del Producto</label>
                         <RadzenTextBox @bind-Value="productoEdicion.nombre_producto" class="w-100"></RadzenTextBox>
                     </div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Precio</label>
@@ -100,25 +113,25 @@
                             <RadzenNumeric @bind-Value="productoEdicion.stock_producto" TValue="int" class="w-100"></RadzenNumeric>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Estado</label>
-                        <RadzenDropDown @bind-Value="productoEdicion.estado_producto" 
-                                       Data="@estadosProducto" 
-                                       TValue="string" 
-                                       TextProperty="Value" 
-                                       ValueProperty="Key" 
+                        <RadzenDropDown @bind-Value="productoEdicion.estado_producto"
+                                       Data="@estadosProducto"
+                                       TValue="string"
+                                       TextProperty="Value"
+                                       ValueProperty="Key"
                                        class="w-100">
                         </RadzenDropDown>
                     </div>
                 </div>
-                
+
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Descripción</label>
                         <RadzenTextBox @bind-Value="productoEdicion.descripcion_producto" class="w-100" Multiline="true" Rows="3"></RadzenTextBox>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Notas</label>
                         <RadzenTextBox @bind-Value="productoEdicion.notas_producto" class="w-100" Multiline="true" Rows="5"></RadzenTextBox>

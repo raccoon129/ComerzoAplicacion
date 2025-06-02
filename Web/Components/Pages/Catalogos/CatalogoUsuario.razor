@@ -9,10 +9,7 @@
 <PageTitle>Catálogo de Usuarios</PageTitle>
 
 <h3>Catálogo de Usuarios</h3>
-
-<div class="d-flex justify-content-between mb-3">
-    <RadzenButton Text="Agregar Usuario" Icon="person_add" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new usuario()))"></RadzenButton>
-</div>
+<br />
 
 @if (cargando)
 {
@@ -22,6 +19,9 @@
 }
 else
 {
+<div class="d-flex justify-content-between mb-3">
+    <RadzenButton Text="Agregar Usuario" Icon="person_add" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new usuario()))"></RadzenButton>
+</div>
     <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false"
                     FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="10" AllowPaging="true"
                     PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
