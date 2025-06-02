@@ -4,6 +4,9 @@
 <RadzenNotification />
 <RadzenTooltip />
 <RadzenContextMenu />
+
+<NavBar />
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -13,7 +16,7 @@
         <div class="top-row px-4">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
                 <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">Acerca de</a>
-                <RadzenButton Text="Cerrar Sesión" Click="@CerrarSesion" ButtonStyle="ButtonStyle.Light" />
+                
             </RadzenStack>
         </div>
 
@@ -30,9 +33,5 @@
 </div>
 
 @code {
-    private void CerrarSesion()
-    {
-        // Implementar lógica de cierre de sesión
-        Navegador.NavigateTo("/");
-    }
+
 }

@@ -4,4 +4,203 @@
 @using BIZ
 @using COMMON.Validadores
 @inject DialogService dialogService
+@inject NotificationService NotificationService
 
+<PageTitle>Catálogo de Usuarios</PageTitle>
+
+<h3>Catálogo de Usuarios</h3>
+
+<div class="d-flex justify-content-between mb-3">
+    <RadzenButton Text="Agregar Usuario" Icon="person_add" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new usuario()))"></RadzenButton>
+</div>
+
+@if (cargando)
+{
+    <div class="d-flex justify-content-center my-5">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Style="width: 40%" />
+    </div>
+}
+else
+{
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false"
+                    FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="10" AllowPaging="true"
+                    PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="@usuarios" ColumnWidth="auto" LogicalFilterOperator="LogicalFilterOperator.Or">
+
+        <Columns>
+            <RadzenDataGridColumn Property="id_usuario" Title="ID" Width="70px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn Property="nombre_usuario_login" Title="Nombre de Usuario" Width="200px" />
+            <RadzenDataGridColumn Property="usuario_alta" Title="Creado por" Width="150px" />
+            <RadzenDataGridColumn Property="fecha_alta" Title="Fecha Alta" Width="120px" FormatString="{0:dd/MM/yyyy}" />
+            <RadzenDataGridColumn Property="fecha_mod" Title="Última Modificación" Width="120px" FormatString="{0:dd/MM/yyyy}" />
+            <RadzenDataGridColumn Title="Acciones" Width="120px" TextAlign="TextAlign.Center">
+                <Template Context="data">
+                    <RadzenButton Click="@(() => Editar((usuario)data))" ButtonStyle="ButtonStyle.Warning" Icon="edit" Size="ButtonSize.Small" />
+                    <RadzenButton Click="@(() => Eliminar((usuario)data))" ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" class="ms-1" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    UsuarioManager usuarioManager;
+    List<usuario> usuarios;
+    bool cargando = true;
+    bool mostrarPassword = false;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        usuarioManager = new UsuarioManager(new usuarioValidator());
+        ActualizarTabla();
+    }
+
+    protected async void ActualizarTabla()
+    {
+        cargando = true;
+        usuarios = await usuarioManager.ObtenerTodos();
+        cargando = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected async Task Editar(usuario usuario)
+    {
+        string titulo = usuario.id_usuario == 0 ? "Nuevo Usuario" : $"Editar Usuario: {usuario.nombre_usuario_login}";
+
+        // Creamos una copia local para trabajar en el diálogo
+        var usuarioEdicion = new usuario
+        {
+            id_usuario = usuario.id_usuario,
+            nombre_usuario_login = usuario.nombre_usuario_login,
+            clave_usuario = usuario.id_usuario == 0 ? string.Empty : "********" // Placeholder para contraseña existente
+        };
+
+        // Variable para controlar si es un nuevo usuario o una edición
+        bool esNuevo = usuario.id_usuario == 0;
+
+        // Variable para detectar si se cambió la contraseña
+        string passwordOriginal = usuarioEdicion.clave_usuario;
+
+        var result = await dialogService.OpenAsync(titulo, ds => @<RadzenStack Gap="1.5rem">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Nombre de Usuario</label>
+                        <RadzenTextBox @bind-Value="usuarioEdicion.nombre_usuario_login" class="w-100" Placeholder="Nombre de usuario (min. 4 caracteres)" />
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Contraseña</label>
+                        <div class="input-group">
+                            <RadzenPassword @bind-Value="usuarioEdicion.clave_usuario"
+                                            Placeholder="@(esNuevo ? "Contraseña (mínimo 8 caracteres)" : "Dejar vacío para no cambiar")"
+                                            ShowPassword="@mostrarPassword"
+                                            class="w-100" />
+
+                            <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="@(mostrarPassword ? "visibility_off" : "visibility")"
+                                          Click="@(() => mostrarPassword = !mostrarPassword)" />
+                        </div>
+                        @if (!esNuevo)
+                        {
+                            <small class="text-muted">Deje en blanco para mantener la contraseña actual</small>
+                        }
+                        else
+                        {
+                            <small class="text-muted">La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas y números</small>
+                        }
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end mt-3">
+        <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary" Click="@(() => ds.Close(false))" class="me-2"></RadzenButton>
+        <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary" Click="@(() => GuardarUsuario(usuarioEdicion, esNuevo, passwordOriginal, ds))"></RadzenButton>
+    </div>
+</RadzenStack>
+        , new DialogOptions()
+          {
+              Draggable = true,
+              ShowClose = true,
+              Resizable = true,
+              Width = "500px",
+              Height = "400px"
+          });
+
+        if (result == true)
+        {
+            ActualizarTabla();
+        }
+    }
+
+    protected async Task GuardarUsuario(usuario usuario, bool esNuevo, string passwordOriginal, DialogService ds)
+    {
+        // Si no es nuevo usuario y la contraseña no se cambió (sigue siendo ********), no la enviamos
+        if (!esNuevo && usuario.clave_usuario == "********")
+        {
+            // Obtenemos el usuario actual para conservar su contraseña
+            var usuarioActual = await usuarioManager.ObtenerPorId(usuario.id_usuario);
+            if (usuarioActual != null)
+            {
+                usuario.clave_usuario = usuarioActual.clave_usuario;
+            }
+            else
+            {
+                await dialogService.Alert("No se pudo obtener la información del usuario actual", "Error");
+                return;
+            }
+        }
+        // Si la contraseña está en blanco y es una edición, mostramos error
+        else if (!esNuevo && string.IsNullOrEmpty(usuario.clave_usuario))
+        {
+            var usuarioActual = await usuarioManager.ObtenerPorId(usuario.id_usuario);
+            if (usuarioActual != null)
+            {
+                usuario.clave_usuario = usuarioActual.clave_usuario;
+            }
+        }
+
+        usuario resultado;
+        if (esNuevo)
+        {
+            resultado = await usuarioManager.Agregar(usuario);
+        }
+        else
+        {
+            resultado = await usuarioManager.Modificar(usuario);
+        }
+
+        if (resultado != null)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Éxito",
+                esNuevo ? "Usuario creado correctamente" : "Usuario actualizado correctamente");
+            ds.Close(true);
+        }
+        else
+        {
+            await dialogService.Alert(usuarioManager.Error, "Error al guardar");
+        }
+    }
+
+    protected async Task Eliminar(usuario usuario)
+    {
+        var confirmacion = await dialogService.Confirm(
+            $"¿Está seguro de eliminar el usuario '{usuario.nombre_usuario_login}'?",
+            "Confirmar eliminación",
+            new ConfirmOptions() { OkButtonText = "Sí", CancelButtonText = "No" });
+
+        if (confirmacion == true)
+        {
+            var eliminado = await usuarioManager.Eliminar(usuario.id_usuario);
+            if (eliminado)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Éxito", "Usuario eliminado correctamente");
+                ActualizarTabla();
+            }
+            else
+            {
+                await dialogService.Alert(usuarioManager.Error, "Error al eliminar");
+            }
+        }
+    }
+}

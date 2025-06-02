@@ -1,5 +1,7 @@
 ﻿@using Radzen
 @using Radzen.Blazor
+@using BIZ
+@inject NavigationManager Navegador
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -12,17 +14,64 @@
 
 <RadzenPanelMenu>
     <RadzenPanelMenuItem Text="Inicio" Icon="dashboard" Path="/inicio" />
-
-
-        <RadzenPanelMenuItem Text="Historial de ventas" Icon="receipt_long" Path="/venta/historial" />
-
-    
+    <RadzenPanelMenuItem Text="Historial de ventas" Icon="receipt_long" Path="/venta/historial" />
     <RadzenPanelMenuItem Text="Productos" Icon="inventory_2" Path="/producto" />
     <RadzenPanelMenuItem Text="Inventario" Icon="warehouse" Path="/inventario" />
     <RadzenPanelMenuItem Text="Clientes" Icon="people" Path="/cliente" />
     <RadzenPanelMenuItem Text="Usuarios" Icon="account_circle" Path="/usuario" />
-
-    <RadzenPanelMenuItem Text="Reportes" Icon="insights" Path="/reportes" />
+    <RadzenPanelMenuItem Text="Reportes" Icon="insights" Path="" />
     <RadzenPanelMenuItem Text="Configuración" Icon="settings" Path="/informacion" />
+    <RadzenPanelMenuItem Text="Cerrar Sesión" Icon="output" Click=@CerrarSesion />
 </RadzenPanelMenu>
 
+<RadzenCard >
+    <h6>Usuario conectado</h6>
+    @if (sesionUsuario.usuarioConectado != null)
+    {
+        <div class="user-info">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom: 0.5rem;">
+                <RadzenIcon Icon="account_circle" Style="font-size: 1.5rem; color: #4285f4;" />
+                <h5 style="margin: 0; color: #333; font-weight: bold;">@sesionUsuario.usuarioConectado.nombre_usuario_login</h5>
+            </RadzenStack>
+
+            <RadzenStack Gap="0.3rem" Style="padding-left: 2rem; font-size: 0.9rem; color: #555;">
+                <div>
+                    <span style="font-weight: 500;">ID:</span> @sesionUsuario.usuarioConectado.id_usuario
+                </div>
+                <div>
+                    <span style="font-weight: 500;">Fecha:</span> @DateTime.Now.ToLongDateString()
+                </div>
+
+
+            </RadzenStack>
+        </div>
+        
+    }
+    else
+    {
+        <div style="text-align: center; color: #777;">
+            <RadzenIcon Icon="account_circle" Style="font-size: 2rem;" />
+            <p>No hay usuario conectado</p>
+        </div>
+    }
+</RadzenCard>
+
+<style>
+    .user-info {
+        padding: 0.5rem;
+    }
+</style>
+
+@code {
+    private void CerrarSesion()
+    {
+        // Implementar lógica de cierre de sesión
+        sesionUsuario.usuarioConectado = null;
+        Navegador.NavigateTo("/");
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+}

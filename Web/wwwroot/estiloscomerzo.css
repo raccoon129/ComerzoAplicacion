@@ -1,1 +1,9 @@
-﻿
+﻿/* Ajuste para la barra de navegación fija */
+body {
+    margin-top: 56px; /* Ajustar según la altura exacta de tu navbar */
+}
+
+/* Si algún layout necesita ajustes específicos */
+.page {
+    margin-top: 0; /* Asegura que no haya márgenes extras innecesarios */
+}

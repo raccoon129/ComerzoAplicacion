@@ -52,5 +52,32 @@ namespace BIZ
                 return null;
             }
         }
+
+        public override Task<usuario> Agregar(usuario entidad)
+        {
+            try
+            {
+                // Validaciones y configuraciones iniciales
+                if (string.IsNullOrEmpty(entidad.clave_usuario))
+                {
+                    Error = "La contraseña no puede estar vacía";
+                    return null;
+                }
+
+                if (string.IsNullOrEmpty(entidad.nombre_usuario_login))
+                {
+                    Error = "El nombre de usuario no puede estar vacío";
+                    return null;
+                }
+
+                return base.Agregar(entidad);
+            }
+            catch (Exception ex)
+            {
+                Error = $"Error al agregar usuario: {ex.Message}";
+                return null;
+            }
+        }
+
     }
 }

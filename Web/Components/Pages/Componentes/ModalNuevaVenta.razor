@@ -7,6 +7,7 @@
     <div class="row mb-4">
         <div class="col-md-6">
             <h3>Seleccionar Productos</h3>
+            <RadzenAlert Text="Si busca un registro en específico, escriba y pulse enter." AlertStyle="AlertStyle.Info" />
             <div class="mb-3">
                 <RadzenTextBox Placeholder="Buscar productos..." @bind-Value="@textoBusqueda" Change="@BuscarProductos"
                                class="w-100" />
@@ -14,7 +15,7 @@
         </div>
         <div class="col-md-6 text-end align-self-end">
             <RadzenButton Icon="shopping_cart" Text="Finalizar Venta" ButtonStyle="ButtonStyle.Success"
-                          Click="@FinalizarVenta" Disabled="@(!productosSeleccionados.Any())" />
+                          Click="@FinalizarVenta" Disabled="@(!productosSeleccionados.Any() || isBusy)" />
             <RadzenButton Icon="cancel" Text="Cancelar" ButtonStyle="ButtonStyle.Light"
                           Click="@CancelarVenta" class="ms-2" />
         </div>
@@ -62,7 +63,7 @@
             }
             else if (!string.IsNullOrEmpty(textoBusqueda))
             {
-                <div class="alert alert-info">No se encontraron productos con ese nombre.</div>
+                <RadzenAlert Text="No se encontraron productos con ese nombre" AlertStyle="AlertStyle.Info" AllowClose=false />
             }
             else if (todosLosProductos?.Count > 0)
             {
@@ -104,7 +105,7 @@
             }
             else
             {
-                <div class="alert alert-info">No hay productos disponibles en inventario.</div>
+                <RadzenAlert Text="No hay productos seleccionados" AlertStyle="AlertStyle.Info" AllowClose=false />
             }
         </div>
 
@@ -150,9 +151,7 @@
                     }
                     else
                     {
-                        <div class="alert alert-info">
-                            No hay productos seleccionados
-                        </div>
+                    <RadzenAlert Text="No hay productos seleccionados." AlertStyle="AlertStyle.Info" AllowClose=false />
                     }
                 </div>
             </div>
@@ -172,6 +171,7 @@
     private List<producto> productosFiltrados = new List<producto>();
     private List<ProductoSeleccionado> productosSeleccionados = new List<ProductoSeleccionado>();
     private bool cargando = false;
+    private bool isBusy = false; // Propiedad para controlar el estado del botón
     private decimal totalVenta => productosSeleccionados.Sum(p => p.Subtotal);
 
     // Mostrar los productos ordenados por nombre en orden descendente
@@ -318,7 +318,7 @@
                 "Seleccione al menos un producto para realizar la venta");
             return;
         }
-
+        isBusy = true; // Deshabilitar el botón al inicio del proceso
         try
         {
             // Validar que todos los managers estén disponibles

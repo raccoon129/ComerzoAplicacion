@@ -1,10 +1,13 @@
 ﻿@page "/venta/historial"
 @using COMMON
 @using COMMON.Entidades
+@using COMMON.Validadores
+@using FluentValidation
+@using Radzen
+@using Radzen.Blazor
+@using BIZ
 @inject DialogService DialogService
 @inject NotificationService NotificationService
-
-
 
 <PageTitle>Historial de Ventas</PageTitle>
 
@@ -84,11 +87,11 @@
 
     protected override void OnInitialized()
     {
-        // Crear validadores temporales para los managers
-        var productoValidator = new DummyValidator<producto>();
-        var ventaValidator = new DummyValidator<venta>();
-        var ventaDetalleValidator = new DummyValidator<venta_detalle>();
-        var inventarioValidator = new DummyValidator<inventario>();
+        // Crear validadores reales para los managers en lugar de dummies
+        var productoValidator = new productoValidator();
+        var ventaValidator = new ventaValidator();
+        var ventaDetalleValidator = new ventaDetalleValidator();
+        var inventarioValidator = new inventarioValidator();
         
         // Inicializar los managers en el orden correcto (dependencias primero)
         _productoManager = new ProductoManager(productoValidator);
@@ -171,7 +174,6 @@
         }
     }
 
-
     private async Task VerDetalleVenta(venta venta)
     {
         var parameters = new Dictionary<string, object>
@@ -183,14 +185,5 @@
         };
 
         await DialogService.OpenAsync<DetalleVentaComponent>("Detalle de Venta", parameters);
-    }
-
-    // Validador dummy para inicializar los managers sin DI
-    public class DummyValidator<T> : FluentValidation.AbstractValidator<T>
-    {
-        public DummyValidator()
-        {
-            // Validador vacío para instanciar los managers
-        }
     }
 }

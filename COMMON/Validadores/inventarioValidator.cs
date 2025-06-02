@@ -29,10 +29,6 @@ namespace COMMON.Validadores
             RuleFor(i => i.descripcion_movimiento)
                 .MaximumLength(255);
 
-            RuleFor(i => i.fecha_movimiento)
-                .NotEmpty()
-                .LessThanOrEqualTo(DateTime.Now)
-                .WithMessage("La fecha de movimiento no puede ser futura");
         }
     }
 }

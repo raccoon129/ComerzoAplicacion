@@ -13,9 +13,7 @@ namespace COMMON.Validadores
         public ventaValidator()
         {
             RuleFor(v => v.fecha_hora_venta)
-                .NotEmpty()
-                .LessThanOrEqualTo(DateTime.Now)
-                .WithMessage("La fecha de venta no puede ser futura");
+                .NotEmpty();
 
             RuleFor(v => v.monto_total_venta)
                 .NotEmpty()
@@ -25,12 +23,6 @@ namespace COMMON.Validadores
             RuleFor(v => v.id_usuario)
                 .NotEmpty()
                 .GreaterThan(0);
-
-            When(v => v.id_cliente.HasValue, () =>
-            {
-                RuleFor(v => v.id_cliente)
-                    .GreaterThan(0);
-            });
         }
     }
 }

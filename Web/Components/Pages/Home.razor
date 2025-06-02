@@ -2,6 +2,9 @@
 @using COMMON.Entidades
 @using BIZ
 @using FluentValidation
+@using Radzen
+@using Radzen.Blazor
+@using COMMON.Validadores
 @inject DialogService DialogService
 @inject NotificationService NotificationService
 
@@ -19,22 +22,29 @@
             Resumen del día
         </div>
         <div class="card-body bg-light">
-            <div class="row">
-                <div class="col">
-                    <h5>Ventas de hoy:</h5>
+            @if (cargando)
+            {
+                <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px" />
+            }
+            else
+            {
+                <div class="row">
+                    <div class="col">
+                        <h5>Ventas de hoy:</h5>
+                    </div>
+                    <div class="col text-end">
+                        <h5>@totalVentasDia.ToString("C")</h5>
+                    </div>
                 </div>
-                <div class="col text-end">
-                    <h5>@totalVentasDia.ToString("C")</h5>
+                <div class="row">
+                    <div class="col">
+                        <h5>Productos vendidos:</h5>
+                    </div>
+                    <div class="col text-end">
+                        <h5>@totalProductosVendidos</h5>
+                    </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col">
-                    <h5>Productos vendidos:</h5>
-                </div>
-                <div class="col text-end">
-                    <h5>@totalProductosVendidos</h5>
-                </div>
-            </div>
+            }
         </div>
     </div>
 
@@ -48,7 +58,11 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    @if (productosPopulares.Any())
+                    @if (cargando)
+                    {
+                        <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px" />
+                    }
+                    else if (productosPopulares.Any())
                     {
                         <div class="list-group">
                             @foreach (var producto in productosPopulares)
@@ -65,7 +79,7 @@
                     }
                     else
                     {
-                        <div class="alert alert-info">No hay ventas registradas hoy.</div>
+                        <RadzenAlert Text="No hay ventas registradas hoy." AlertStyle="AlertStyle.Info" AllowClose=false />
                     }
                 </div>
             </div>
@@ -80,7 +94,11 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    @if (productosBajoStock.Any())
+                    @if (cargando)
+                    {
+                        <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px" />
+                    }
+                    else if (productosBajoStock.Any())
                     {
                         <div class="list-group">
                             @foreach (var producto in productosBajoStock)
@@ -98,7 +116,7 @@
                     }
                     else
                     {
-                        <div class="alert alert-info">No hay productos con bajo stock.</div>
+                        <RadzenAlert Text="No hay productos con bajo stock." AlertStyle="AlertStyle.Info" AllowClose=false />
                     }
                 </div>
             </div>
@@ -135,7 +153,7 @@
             }
             else
             {
-                <div class="alert alert-info">No hay ventas registradas.</div>
+                <RadzenAlert Text="No hay ventas registradas." AlertStyle="AlertStyle.Info" AllowClose=false />
             }
         </div>
     </div>
@@ -166,11 +184,11 @@
 
     protected override void OnInitialized()
     {
-        // Crear validadores temporales para los managers
-        var productoValidator = new DummyValidator<producto>();
-        var ventaValidator = new DummyValidator<venta>();
-        var ventaDetalleValidator = new DummyValidator<venta_detalle>();
-        var inventarioValidator = new DummyValidator<inventario>();
+        // Usar los validadores reales en lugar de los dummy
+        var productoValidator = new productoValidator();
+        var ventaValidator = new ventaValidator();
+        var ventaDetalleValidator = new ventaDetalleValidator();
+        var inventarioValidator = new inventarioValidator();
 
         // Inicializar los managers en el orden correcto (dependencias primero)
         _productoManager = new ProductoManager(productoValidator);
@@ -236,8 +254,6 @@
     {
         try
         {
-            // Esta implementación sería mejor obteniendo datos reales desde la base de datos
-            // Por ahora, haremos una simulación basada en ventas
             var ventasHoy = await _ventaManager.ObtenerVentasDelDia();
             Dictionary<int, int> productosCantidad = new Dictionary<int, int>();
 
@@ -280,16 +296,6 @@
                         })
                         .ToList();
                 }
-            }
-
-            // Si no hay datos, mostrar simulación
-            if (!productosPopulares.Any())
-            {
-                productosPopulares = new List<ProductoPopular>
-                {
-                    new ProductoPopular { Nombre = "Granola Natural", Cantidad = 8, PorcentajeVentas = 25 },
-                    new ProductoPopular { Nombre = "Palanquetas de Amaranto", Cantidad = 6, PorcentajeVentas = 15 }
-                };
             }
         }
         catch (Exception ex)
@@ -387,14 +393,5 @@
         };
 
         await DialogService.OpenAsync<DetalleVentaComponent>("Detalle de Venta", parameters);
-    }
-
-    // Validador dummy para inicializar los managers sin DI
-    public class DummyValidator<T> : AbstractValidator<T>
-    {
-        public DummyValidator()
-        {
-            // Validador vacío para instanciar los managers
-        }
     }
 }
