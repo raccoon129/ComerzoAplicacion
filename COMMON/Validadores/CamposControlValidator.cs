@@ -14,7 +14,7 @@ namespace COMMON.Validadores
         {
             //Los campos nulos no son validados
             RuleFor(c => c.fecha_alta).NotEmpty().GreaterThanOrEqualTo(new DateTime(2025, 1, 1));//La fecha de alta no puede ser menor a 2025
-            RuleFor(c => c.usuario_alta).NotEmpty().MaximumLength(100).MinimumLength(5);//El usuario de alta debe tener entre 5 y 50 caracteres
+            RuleFor(c => c.usuario_alta).NotEmpty().MaximumLength(100).MinimumLength(3);//El usuario de alta debe tener entre 5 y 50 caracteres
             RuleFor(c => c.usuario_mod).MaximumLength(100);//El usuario de modificación debe tener menos de 50 caracteres
         }
     }

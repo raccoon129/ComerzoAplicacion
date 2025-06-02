@@ -2,45 +2,61 @@
 @using COMMON.Entidades
 @using BIZ
 @using COMMON.Validadores
+@using Radzen
 @inject DialogService dialogService
+@inject NotificationService notificationService
 
 <h3>Catálogo de Inventario</h3>
 <br />
 @if (cargando)
 {
-
     <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px; width: 100%;" />
 }
-else{
+else
+{
+    <RadzenButton Text="Agregar Movimiento" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new inventario()))"></RadzenButton>
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" 
+                   FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="10" AllowPaging="true" 
+                   PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                   Data="@movimientos" ColumnWidth="auto" LogicalFilterOperator="LogicalFilterOperator.Or" 
+                   TItem="inventario" SortOrder="SortOrder.Descending" SortField="fecha_movimiento">
 
-<RadzenButton Text="Agregar Movimiento" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new inventario()))"></RadzenButton>
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-                Data="@movimientos" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" TItem="inventario">
-
-    <Columns>
-        <RadzenDataGridColumn TItem="inventario" Property="id_movimiento" Title="ID" Width="50px" />
-        <RadzenDataGridColumn TItem="inventario" Property="id_producto" Title="ID Producto" Width="80px">
-            <Template Context="data">
-                @ObtenerNombreProducto(data.id_producto)
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="inventario" Property="cantidad_movimiento" Title="Cantidad" Width="70px" />
-        <RadzenDataGridColumn TItem="inventario" Property="tipo_movimiento" Title="Tipo" Width="80px" />
-        <RadzenDataGridColumn TItem="inventario" Property="fecha_movimiento" Title="Fecha" Width="100px" FormatString="{0:dd/MM/yyyy HH:mm}" />
-        <RadzenDataGridColumn TItem="inventario" Property="descripcion_movimiento" Title="Descripción" Width="150px" />
-        <RadzenDataGridColumn TItem="inventario" Title="Acciones">
-            <Template Context="data">
-                <RadzenButton Click="@(() => Editar(data))" ButtonStyle="ButtonStyle.Warning" Icon="edit"></RadzenButton>
-            </Template>
-        </RadzenDataGridColumn>
-    </Columns>
-</RadzenDataGrid>
-
+        <Columns>
+            <RadzenDataGridColumn TItem="inventario" Property="fecha_movimiento" Title="Fecha" Width="150px" 
+                                  FormatString="{0:dd/MM/yyyy HH:mm}" SortOrder="SortOrder.Descending" />
+            <RadzenDataGridColumn TItem="inventario" Property="id_producto" Title="Producto" Width="200px">
+                <Template Context="data">
+                    @ObtenerNombreProducto(data.id_producto)
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="inventario" Property="tipo_movimiento" Title="Tipo" Width="100px" TextAlign="TextAlign.Center">
+                <Template Context="data">
+                    @if (data.tipo_movimiento == "entrada")
+                    {
+                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Entrada" />
+                    }
+                    else
+                    {
+                        <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Salida" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="inventario" Property="cantidad_movimiento" Title="Cantidad" Width="90px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="inventario" Property="descripcion_movimiento" Title="Descripción" Width="250px" />
+            <RadzenDataGridColumn TItem="inventario" Property="id_movimiento" Title="ID" Width="60px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="inventario" Title="Acciones" Width="80px" TextAlign="TextAlign.Center">
+                <Template Context="data">
+                    <RadzenButton Click="@(() => Editar(data))" ButtonStyle="ButtonStyle.Warning" Icon="edit" Size="ButtonSize.Small"></RadzenButton>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 }
 <br />
 <br />
 
-@code {
+@code 
+{
     InventarioManager inventarioManager;
     ProductoManager productoManager;
     List<inventario> movimientos;
@@ -67,6 +83,13 @@ else{
         cargando = true;
         movimientos = await inventarioManager.ObtenerTodos();
         productos = await productoManager.ObtenerTodos();
+        
+        // Ordenamos los movimientos por fecha de forma descendente
+        if (movimientos != null)
+        {
+            movimientos = movimientos.OrderByDescending(m => m.fecha_movimiento).ToList();
+        }
+        
         cargando = false;
         await InvokeAsync(StateHasChanged);
     }
@@ -157,7 +180,11 @@ else{
     protected async Task GuardarDesdeDialog(inventario movimiento, DialogService ds)
     {
         inventario resultado;
-        if (movimiento.id_movimiento == 0)
+        bool esNuevo = movimiento.id_movimiento == 0;
+        string nombreProducto = ObtenerNombreProducto(movimiento.id_producto);
+        string tipoMovimiento = movimiento.tipo_movimiento == "entrada" ? "entrada" : "salida";
+
+        if (esNuevo)
         {
             resultado = await inventarioManager.Agregar(movimiento);
         }
@@ -170,10 +197,36 @@ else{
         {
             ds.Close(true);
             ActualizarTabla();
+
+            // Mostrar notificación de éxito
+            string mensaje = esNuevo
+                ? $"Movimiento de {tipoMovimiento} registrado para '{nombreProducto}'"
+                : $"Movimiento #{resultado.id_movimiento} actualizado correctamente";
+
+            NotificationSeverity severidad = movimiento.tipo_movimiento == "entrada" ? 
+                NotificationSeverity.Success : NotificationSeverity.Info;
+
+            notificationService.Notify(new NotificationMessage
+            {
+                Severity = severidad,
+                Summary = esNuevo ? "Movimiento registrado" : "Movimiento actualizado",
+                Detail = mensaje,
+                Duration = 4000
+            });
         }
         else
         {
+            // Mostrar notificación de error junto con el diálogo de alerta
+            notificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Error",
+                Detail = inventarioManager.Error,
+                Duration = 6000
+            });
+
             await dialogService.Alert(inventarioManager.Error, "Error al guardar");
         }
     }
+    
 }

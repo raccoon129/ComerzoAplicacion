@@ -134,8 +134,8 @@ namespace BIZ
         {
             try
             {
-                entidad.usuario_alta = Params.UsuarioConectado;
-                entidad.usuario_mod = Params.UsuarioConectado;
+                entidad.usuario_alta = ParametrosSesion.UsuarioConectado;
+                entidad.usuario_mod = ParametrosSesion.UsuarioConectado;
                 entidad.fecha_alta = DateTime.Now;
                 entidad.fecha_mod = DateTime.Now;
 
@@ -177,8 +177,15 @@ namespace BIZ
         {
             try
             {
-                entidad.usuario_mod = Params.UsuarioConectado;
+                entidad.usuario_mod = ParametrosSesion.UsuarioConectado;
                 entidad.fecha_mod = DateTime.Now;
+
+                if (entidad.fecha_alta == default)
+                    entidad.fecha_alta = DateTime.Now;
+
+                if (entidad.usuario_alta == default)
+                    entidad.usuario_alta = ParametrosSesion.UsuarioConectado;
+
 
                 var resultadoValidacion = _validator.Validate(entidad);
                 if (resultadoValidacion.IsValid)

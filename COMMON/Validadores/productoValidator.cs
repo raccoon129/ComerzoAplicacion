@@ -19,7 +19,7 @@ namespace COMMON.Validadores
 
             RuleFor(p => p.descripcion_producto)
                 .NotEmpty()
-                .MinimumLength(10);
+                .MinimumLength(5);
 
             RuleFor(p => p.precio_producto)
                 .NotEmpty()

@@ -33,7 +33,7 @@ namespace DAL
             Error = "";
             try
             {
-                entidad.usuario_mod = Params.UsuarioConectado;
+                //entidad.usuario_mod = Params.UsuarioConectado;
                 entidad.fecha_mod = DateTime.Now;
                 var resultadoValidacion = validador.Validate(entidad);
                 if (resultadoValidacion.IsValid)

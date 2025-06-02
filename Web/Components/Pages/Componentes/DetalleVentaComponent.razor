@@ -1,4 +1,5 @@
 ﻿@using COMMON.Entidades
+@using System.Globalization
 @inject DialogService DialogService
 @inject NotificationService NotificationService
 
@@ -26,7 +27,7 @@
                         }
                     </div>
                     <div class="col-md-6 text-end">
-                        <div><strong>Total:</strong> @venta.monto_total_venta.ToString("C")</div>
+                        <div><strong>Total:</strong> @venta.monto_total_venta.ToString("C", CultureInfo.GetCultureInfo("es-MX"))</div>
                     </div>
                 </div>
 
@@ -58,15 +59,15 @@
                                             }
                                         </td>
                                         <td class="text-center">@detalle.cantidad_vendida</td>
-                                        <td class="text-end">@detalle.precio_unitario_venta.ToString("C")</td>
-                                        <td class="text-end">@detalle.subtotal_detalle.ToString("C")</td>
+                                        <td class="text-end">@detalle.precio_unitario_venta.ToString("C", CultureInfo.GetCultureInfo("es-MX"))</td>
+                                        <td class="text-end">@detalle.subtotal_detalle.ToString("C", CultureInfo.GetCultureInfo("es-MX"))</td>
                                     </tr>
                                 }
                             </tbody>
                             <tfoot>
                                 <tr>
                                     <th colspan="3" class="text-end">Total:</th>
-                                    <th class="text-end">@venta.monto_total_venta.ToString("C")</th>
+                                    <th class="text-end">@venta.monto_total_venta.ToString("C", CultureInfo.GetCultureInfo("es-MX"))</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -76,39 +77,6 @@
                 {
                     <div class="alert alert-info">No hay detalles disponibles para esta venta.</div>
                 }
-            </div>
-        </div>
-
-        <div class="row mt-3 mb-4">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0">Movimientos de inventario</h6>
-                    </div>
-                    <div class="card-body">
-                        @if (movimientos != null && movimientos.Any())
-                        {
-                            <div class="small">
-                                <ul class="list-group">
-                                    @foreach (var movimiento in movimientos)
-                                    {
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong>@(productosMap.ContainsKey(movimiento.id_producto) ? productosMap[movimiento.id_producto].nombre_producto : $"Producto #{movimiento.id_producto}")</strong>
-                                                <div>@movimiento.descripcion_movimiento</div>
-                                            </div>
-                                            <span class="badge bg-danger rounded-pill">-@movimiento.cantidad_movimiento</span>
-                                        </li>
-                                    }
-                                </ul>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="alert alert-info">No hay movimientos de inventario registrados para esta venta.</div>
-                        }
-                    </div>
-                </div>
             </div>
         </div>
     }
@@ -135,7 +103,6 @@
     private bool cargando = true;
     private venta venta;
     private List<venta_detalle> detalles;
-    private List<inventario> movimientos;
     private Dictionary<int, producto> productosMap = new Dictionary<int, producto>();
     private List<ModalNuevaVenta.ProductoSeleccionado> productosVendidos = new List<ModalNuevaVenta.ProductoSeleccionado>();
 
@@ -182,12 +149,6 @@
                 productosMap = productos.ToDictionary(p => p.id_producto);
             }
 
-            // Cargar movimientos de inventario si InventarioManager está disponible
-            if (InventarioManager != null)
-            {
-                await CargarMovimientosInventario();
-            }
-
             // Preparar datos para el ticket
             PrepararDatosTicket();
         }
@@ -198,29 +159,6 @@
         finally
         {
             cargando = false;
-        }
-    }
-
-    private async Task CargarMovimientosInventario()
-    {
-        try
-        {
-            var todosMovimientos = await InventarioManager.ObtenerTodos();
-            if (todosMovimientos != null)
-            {
-                // Filtrar solo los movimientos relacionados con esta venta
-                string descripcionVenta = $"Venta #{IdVenta}";
-                movimientos = todosMovimientos
-                    .Where(m => m.descripcion_movimiento != null && 
-                               m.descripcion_movimiento.Contains(descripcionVenta) && 
-                               m.tipo_movimiento == "salida")
-                    .ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al cargar movimientos: {ex.Message}");
-            movimientos = new List<inventario>();
         }
     }
 
@@ -260,13 +198,5 @@
     private void Cerrar()
     {
         DialogService.Close();
-    }
-    
-    // Clase para compatibilidad con el componente TicketVentaComponent
-    public class ProductoSeleccionado
-    {
-        public producto Producto { get; set; }
-        public int Cantidad { get; set; }
-        public decimal Subtotal => Producto.precio_producto * Cantidad;
     }
 }

@@ -2,55 +2,53 @@
 @using COMMON.Entidades
 @using BIZ
 @using COMMON.Validadores
+@using Radzen
 @inject DialogService dialogService
+@inject NotificationService notificationService
 
 <h3>Catálogo de Productos</h3>
 <br />
 @if (cargando)
 {
-
-
     <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px; width: 100%;" />
 }
 else
 {
-    
-<div class="d-flex justify-content-between mb-3">
-    <RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new producto()))"></RadzenButton>
-</div>
+    <div class="d-flex justify-content-between mb-3">
+        <RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new producto()))"></RadzenButton>
+    </div>
 
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false"
-                FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="8" AllowPaging="true"
-                PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-                Data="@productos" ColumnWidth="auto" LogicalFilterOperator="LogicalFilterOperator.Or">
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false"
+                   FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="8" AllowPaging="true"
+                   PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                   Data="@productos" ColumnWidth="auto" LogicalFilterOperator="LogicalFilterOperator.Or">
 
-    <Columns>
-        <RadzenDataGridColumn Property="id_producto" Title="ID" Width="70px" TextAlign="TextAlign.Center" />
-        <RadzenDataGridColumn Property="nombre_producto" Title="Nombre" Width="200px" />
-        <RadzenDataGridColumn Property="descripcion_producto" Title="Descripción" Width="250px" />
-        <RadzenDataGridColumn Property="precio_producto" Title="Precio" Width="100px" FormatString="{0:C}" TextAlign="TextAlign.Right" />
-        <RadzenDataGridColumn Property="stock_producto" Title="Stock" Width="80px" TextAlign="TextAlign.Center" />
-        <RadzenDataGridColumn Property="estado_producto" Title="Estado" Width="120px">
-            <Template Context="data">
-                @{
-                    var producto = (producto)data;
-                    var estado = estadosProducto.ContainsKey(producto.estado_producto) ? estadosProducto[producto.estado_producto] : producto.estado_producto;
+        <Columns>
+            <RadzenDataGridColumn Property="id_producto" Title="ID" Width="70px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn Property="nombre_producto" Title="Nombre" Width="200px" />
+            <RadzenDataGridColumn Property="descripcion_producto" Title="Descripción" Width="250px" />
+            <RadzenDataGridColumn Property="precio_producto" Title="Precio" Width="100px" FormatString="{0:C}" TextAlign="TextAlign.Right" />
+            <RadzenDataGridColumn Property="stock_producto" Title="Stock" Width="80px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn Property="estado_producto" Title="Estado" Width="120px">
+                <Template Context="data">
+                    @{
+                        var producto = (producto)data;
+                        var estado = estadosProducto.ContainsKey(producto.estado_producto) ? estadosProducto[producto.estado_producto] : producto.estado_producto;
 
-                    <RadzenBadge BadgeStyle="@(producto.estado_producto == "activo" ? BadgeStyle.Success :
-                                             producto.estado_producto == "agotado" ? BadgeStyle.Warning : BadgeStyle.Danger)"
-                                  Text="@estado" />
-                }
-            </Template>
-        </RadzenDataGridColumn>
-        <RadzenDataGridColumn Title="Acciones" Width="120px" TextAlign="TextAlign.Center">
-            <Template Context="data">
-                <RadzenButton Click="@(() => Editar((producto)data))" ButtonStyle="ButtonStyle.Warning" Icon="edit" Size="ButtonSize.Small" />
-                <RadzenButton Click="@(() => Eliminar((producto)data))" ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" class="ms-1" />
-            </Template>
-        </RadzenDataGridColumn>
-    </Columns>
-</RadzenDataGrid>
-
+                        <RadzenBadge BadgeStyle="@(producto.estado_producto == "activo" ? BadgeStyle.Success :
+                                                 producto.estado_producto == "agotado" ? BadgeStyle.Warning : BadgeStyle.Danger)"
+                                      Text="@estado" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn Title="Acciones" Width="120px" TextAlign="TextAlign.Center">
+                <Template Context="data">
+                    <RadzenButton Click="@(() => Editar((producto)data))" ButtonStyle="ButtonStyle.Warning" Icon="edit" Size="ButtonSize.Small" />
+                    <RadzenButton Click="@(() => Eliminar((producto)data))" ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" class="ms-1" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 }
 @code {
     ProductoManager productoManager;
@@ -162,7 +160,9 @@ else
     protected async Task GuardarDesdeDialog(producto producto, DialogService ds)
     {
         producto resultado;
-        if (producto.id_producto == 0)
+        bool esNuevo = producto.id_producto == 0;
+
+        if (esNuevo)
         {
             resultado = await productoManager.Agregar(producto);
         }
@@ -175,9 +175,29 @@ else
         {
             ds.Close(true);
             ActualizarTabla();
+            
+            // Mostrar notificación de éxito
+            string mensaje = esNuevo 
+                ? $"Producto '{resultado.nombre_producto}' agregado correctamente" 
+                : $"Producto '{resultado.nombre_producto}' actualizado correctamente";
+            
+            notificationService.Notify(new NotificationMessage { 
+                Severity = NotificationSeverity.Success,
+                Summary = esNuevo ? "Producto agregado" : "Producto actualizado",
+                Detail = mensaje,
+                Duration = 4000
+            });
         }
         else
         {
+            // Mostrar notificación de error junto con el diálogo de alerta
+            notificationService.Notify(new NotificationMessage {
+                Severity = NotificationSeverity.Error,
+                Summary = "Error",
+                Detail = productoManager.Error,
+                Duration = 6000
+            });
+            
             await dialogService.Alert(productoManager.Error, "Error al guardar");
         }
     }
@@ -192,12 +212,26 @@ else
             var eliminado = await productoManager.Eliminar(producto.id_producto);
             if (eliminado)
             {
-                Console.WriteLine("Producto eliminado exitosamente");
+                // Mostrar notificación de éxito
+                notificationService.Notify(new NotificationMessage {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Producto eliminado",
+                    Detail = $"El producto '{producto.nombre_producto}' ha sido eliminado correctamente",
+                    Duration = 4000
+                });
+                
                 ActualizarTabla();
             }
             else
             {
-                Console.WriteLine($"No se pudo eliminar: {productoManager.Error}");
+                // Mostrar notificación de error
+                notificationService.Notify(new NotificationMessage {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error al eliminar",
+                    Detail = productoManager.Error,
+                    Duration = 6000
+                });
+                
                 await dialogService.Alert(productoManager.Error, "Error al eliminar");
             }
         }

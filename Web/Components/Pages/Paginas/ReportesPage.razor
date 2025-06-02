@@ -1,7 +1,350 @@
 ﻿@page "/reportes"
+@using COMMON.Entidades
+@using BIZ
+@using COMMON.Validadores
+@using Radzen
+@using Radzen.Blazor
+@using System.Linq
+@inject NotificationService NotificationService
+@inject DialogService DialogService
 
-<h3>Reportes</h3>
+<PageTitle>Reportes de Ventas</PageTitle>
+
+<div class="container">
+    <h3 class="mb-4">Reportes</h3>
+
+
+    @if (cargando)
+    {
+        <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px" />
+    }
+    else
+    {
+            <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <h5>Periodo de análisis</h5>
+            <div class="d-flex align-items-center">
+                <RadzenDatePicker @bind-Value="fechaInicio" DateFormat="dd/MM/yyyy" Class="me-2" />
+                <span>hasta</span>
+                <RadzenDatePicker @bind-Value="fechaFin" DateFormat="dd/MM/yyyy" Class="ms-2 me-2" />
+                <RadzenButton Icon="search" Click="@CargarDatos" ButtonStyle="ButtonStyle.Primary" />
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <h6><strong>Resumen</strong></h6>
+            <div class="d-flex flex-column">
+                <div class="d-flex justify-content-between">
+                    <span>Ventas en período:</span>
+                    <strong>@cantidadVentas</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Total vendido:</span>
+                    <strong>@totalVentas.ToString("C")</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Promedio por venta:</span>
+                    <strong>@(cantidadVentas > 0 ? (totalVentas / cantidadVentas).ToString("C") : "$0.00")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <div class="row">
+            <!-- Ventas diarias en el periodo -->
+            <div class="col-md-6 mb-4">
+                <RadzenCard class="h-100">
+                    <RadzenText TextStyle="TextStyle.H6">Ventas diarias</RadzenText>
+                    @if (ventasPorDia.Any())
+                    {
+                        <RadzenChart>
+                            <RadzenColumnSeries Data="@ventasPorDia" CategoryProperty="Fecha" ValueProperty="Total" Title="Ventas" />
+                            <RadzenValueAxis>
+                                <RadzenGridLines Visible="true" />
+                                <RadzenAxisTitle Text="Monto Total" />
+                            </RadzenValueAxis>
+                            <RadzenCategoryAxis>
+                                <RadzenGridLines Visible="false" />
+                                <RadzenAxisTitle Text="Fecha" />
+                            </RadzenCategoryAxis>
+                        </RadzenChart>
+                    }
+                    else
+                    {
+                        <RadzenAlert AlertStyle="AlertStyle.Info" ShowIcon="true" AllowClose="false">
+                            No hay datos de ventas en este período.
+                        </RadzenAlert>
+                    }
+                </RadzenCard>
+            </div>
+
+            <!-- Productos más vendidos -->
+            <div class="col-md-6 mb-4">
+                <RadzenCard class="h-100">
+                    <RadzenText TextStyle="TextStyle.H6">Top 5 Productos Más Vendidos</RadzenText>
+                    @if (productosMasVendidos.Any())
+                    {
+                        <RadzenChart>
+                            <RadzenDonutSeries Data="@productosMasVendidos" CategoryProperty="Nombre" ValueProperty="Cantidad">
+                                <RadzenSeriesDataLabels Visible="true" />
+                            </RadzenDonutSeries>
+                        </RadzenChart>
+                    }
+                    else
+                    {
+                        <RadzenAlert AlertStyle="AlertStyle.Info" ShowIcon="true" AllowClose="false">
+                            No hay datos de productos vendidos en este período.
+                        </RadzenAlert>
+                    }
+                </RadzenCard>
+            </div>
+
+            <!-- Inventario en estado crítico -->
+            <div class="col-md-6 mb-4">
+                <RadzenCard class="h-100">
+                    <div class="d-flex justify-content-between mb-2">
+                        <RadzenText TextStyle="TextStyle.H6">Inventario en Estado Crítico</RadzenText>
+                       
+                    </div>
+                    @if (productosBajoStock.Any())
+                    {
+                        <div class="product-list">
+                            @foreach (var producto in productosBajoStock)
+                            {
+                                <div class="product-item d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <strong>@producto.nombre_producto</strong>
+                                        <small class="d-block text-danger">Stock: @producto.stock_producto</small>
+                                    </div>
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Crítico" />
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <RadzenAlert AlertStyle="AlertStyle.Success" ShowIcon="true" AllowClose="false">
+                            No hay productos con inventario crítico.
+                        </RadzenAlert>
+                    }
+                </RadzenCard>
+            </div>
+
+            <!-- Rendimiento de Ventas -->
+            <div class="col-md-6 mb-4">
+                <RadzenCard class="h-100">
+                    <RadzenText TextStyle="TextStyle.H6">Rendimiento de Ventas</RadzenText>
+                    @if (rendimientoVentas.Any())
+                    {
+                        <RadzenDataGrid AllowFiltering="false" AllowPaging="true" AllowSorting="true" 
+                            Data="@rendimientoVentas" TItem="ProductoRendimiento" PageSize="5">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="ProductoRendimiento" Property="Nombre" Title="Producto" />
+                                <RadzenDataGridColumn TItem="ProductoRendimiento" Property="CantidadVendida" Title="Cantidad" Width="90px" />
+                                <RadzenDataGridColumn TItem="ProductoRendimiento" Property="TotalVendido" Title="Total" Width="120px" FormatString="{0:C}" />
+                                <RadzenDataGridColumn TItem="ProductoRendimiento" Property="PorcentajeTotal" Title="%" Width="70px" FormatString="{0}%" />
+                            </Columns>
+                        </RadzenDataGrid>
+                    }
+                    else
+                    {
+                        <RadzenAlert AlertStyle="AlertStyle.Info" ShowIcon="true" AllowClose="false">
+                            No hay datos de rendimiento de ventas en este período.
+                        </RadzenAlert>
+                    }
+                </RadzenCard>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
+    // Managers
+    private VentaManager _ventaManager;
+    private VentaDetalleManager _ventaDetalleManager;
+    private ProductoManager _productoManager;
+
+    // Control de estado
+    private bool cargando = false;
+    private DateTime fechaInicio = DateTime.Today.AddDays(-30);
+    private DateTime fechaFin = DateTime.Today;
+
+    // Datos para reportes
+    private List<venta> ventas = new List<venta>();
+    private List<producto> productos = new List<producto>();
+    private List<venta_detalle> detallesVenta = new List<venta_detalle>();
+
+    // Datos para gráficos y tablas
+    private int cantidadVentas = 0;
+    private decimal totalVentas = 0;
+    private List<VentaDiaria> ventasPorDia = new List<VentaDiaria>();
+    private List<ProductoVendido> productosMasVendidos = new List<ProductoVendido>();
+    private List<producto> productosBajoStock = new List<producto>();
+    private List<ProductoRendimiento> rendimientoVentas = new List<ProductoRendimiento>();
+
+    // Clases para los reportes
+    public class VentaDiaria
+    {
+        public string Fecha { get; set; }
+        public decimal Total { get; set; }
+    }
+
+    public class ProductoVendido
+    {
+        public string Nombre { get; set; }
+        public int Cantidad { get; set; }
+    }
+
+    public class ProductoRendimiento
+    {
+        public string Nombre { get; set; }
+        public int CantidadVendida { get; set; }
+        public decimal TotalVendido { get; set; }
+        public int PorcentajeTotal { get; set; }
+    }
+
+    protected override void OnInitialized()
+    {
+        // Inicializar managers
+        var productoValidator = new productoValidator();
+        var ventaValidator = new ventaValidator();
+        var ventaDetalleValidator = new ventaDetalleValidator();
+
+        _productoManager = new ProductoManager(productoValidator);
+        var inventarioValidator = new inventarioValidator();
+        var inventarioManager = new InventarioManager(inventarioValidator, _productoManager);
+        _ventaManager = new VentaManager(ventaValidator, inventarioManager);
+        _ventaDetalleManager = new VentaDetalleManager(ventaDetalleValidator, _productoManager, inventarioManager);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+        try
+        {
+            // Obtener todos los datos necesarios
+            ventas = await _ventaManager.ObtenerTodos() ?? new List<venta>();
+            productos = await _productoManager.ObtenerTodos() ?? new List<producto>();
+            detallesVenta = await _ventaDetalleManager.ObtenerTodos() ?? new List<venta_detalle>();
+
+            // Filtrar ventas por el período seleccionado
+            var ventasFiltradas = ventas.Where(v => 
+                v.fecha_hora_venta.Date >= fechaInicio.Date && 
+                v.fecha_hora_venta.Date <= fechaFin.Date).ToList();
+
+            // Procesar datos para los reportes
+            GenerarReporteVentasDiarias(ventasFiltradas);
+            GenerarReporteProductosMasVendidos(ventasFiltradas, detallesVenta);
+            GenerarReporteProductosBajoStock();
+            GenerarReporteRendimientoVentas(ventasFiltradas, detallesVenta);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error al cargar datos: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void GenerarReporteVentasDiarias(List<venta> ventasFiltradas)
+    {
+        cantidadVentas = ventasFiltradas.Count;
+        totalVentas = ventasFiltradas.Sum(v => v.monto_total_venta);
+
+        // Agrupar ventas por día
+        ventasPorDia = ventasFiltradas
+            .GroupBy(v => v.fecha_hora_venta.Date)
+            .Select(g => new VentaDiaria
+            {
+                Fecha = g.Key.ToString("dd/MM"),
+                Total = g.Sum(v => v.monto_total_venta)
+            })
+            .OrderBy(v => v.Fecha)
+            .ToList();
+    }
+
+    private void GenerarReporteProductosMasVendidos(List<venta> ventasFiltradas, List<venta_detalle> detalles)
+    {
+        // Obtener los IDs de ventas filtradas
+        var idsVentasFiltradas = ventasFiltradas.Select(v => v.id_venta).ToList();
+
+        // Filtrar detalles de ventas que corresponden a las ventas del período
+        var detallesFiltrados = detalles.Where(d => idsVentasFiltradas.Contains(d.id_venta)).ToList();
+
+        // Agrupar por producto y sumar cantidades
+        var productosAgrupados = detallesFiltrados
+            .GroupBy(d => d.id_producto)
+            .Select(g => new
+            {
+                IdProducto = g.Key,
+                CantidadVendida = g.Sum(d => d.cantidad_vendida)
+            })
+            .OrderByDescending(p => p.CantidadVendida)
+            .Take(5)
+            .ToList();
+
+        // Obtener nombres de productos
+        productosMasVendidos = productosAgrupados
+            .Select(p =>
+            {
+                var producto = productos.FirstOrDefault(pr => pr.id_producto == p.IdProducto);
+                return new ProductoVendido
+                {
+                    Nombre = producto?.nombre_producto ?? $"Producto {p.IdProducto}",
+                    Cantidad = p.CantidadVendida
+                };
+            })
+            .ToList();
+    }
+
+    private void GenerarReporteProductosBajoStock()
+    {
+        // Filtrar productos con stock crítico (menor a 5 unidades)
+        productosBajoStock = productos
+            .Where(p => p.stock_producto < 5 && p.estado_producto != "descontinuado")
+            .OrderBy(p => p.stock_producto)
+            .ToList();
+    }
+
+    private void GenerarReporteRendimientoVentas(List<venta> ventasFiltradas, List<venta_detalle> detalles)
+    {
+        // Obtener los IDs de ventas filtradas
+        var idsVentasFiltradas = ventasFiltradas.Select(v => v.id_venta).ToList();
+
+        // Filtrar detalles de ventas que corresponden a las ventas del período
+        var detallesFiltrados = detalles.Where(d => idsVentasFiltradas.Contains(d.id_venta)).ToList();
+
+        // Suma total de ventas en el período
+        var totalGeneralVentas = detallesFiltrados.Sum(d => d.subtotal_detalle);
+
+        // Agrupar por producto y calcular métricas
+        rendimientoVentas = detallesFiltrados
+            .GroupBy(d => d.id_producto)
+            .Select(g =>
+            {
+                var producto = productos.FirstOrDefault(p => p.id_producto == g.Key);
+                var cantidadVendida = g.Sum(d => d.cantidad_vendida);
+                var totalVendido = g.Sum(d => d.subtotal_detalle);
+                var porcentaje = totalGeneralVentas > 0 
+                    ? (int)Math.Round(totalVendido * 100 / totalGeneralVentas) 
+                    : 0;
+
+                return new ProductoRendimiento
+                {
+                    Nombre = producto?.nombre_producto ?? $"Producto {g.Key}",
+                    CantidadVendida = cantidadVendida,
+                    TotalVendido = totalVendido,
+                    PorcentajeTotal = porcentaje
+                };
+            })
+            .OrderByDescending(p => p.TotalVendido)
+            .ToList();
+    }
 
 }

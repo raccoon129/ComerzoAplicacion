@@ -19,7 +19,7 @@ namespace COMMON.Validadores
 
             RuleFor(u => u.clave_usuario)
                 .NotEmpty()
-                .MinimumLength(8)
+                .MinimumLength(5)
                 .MaximumLength(255)
                 .Matches("[A-Z]").WithMessage("La contraseña debe contener al menos una mayúscula")
                 .Matches("[a-z]").WithMessage("La contraseña debe contener al menos una minúscula")

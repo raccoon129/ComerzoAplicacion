@@ -2,7 +2,9 @@
 @using COMMON.Entidades
 @using BIZ
 @using COMMON.Validadores
+@using Radzen
 @inject DialogService dialogService
+@inject NotificationService notificationService
 
 <h3>Catálogo de Clientes</h3>
 
@@ -10,31 +12,28 @@
 
 @if (cargando)
 {
-
     <RadzenProgressBar Value="100" Mode="ProgressBarMode.Indeterminate" Style="margin-bottom: 20px; width: 100%;" />
 }
 else
 {
-    
-<RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new cliente()))"></RadzenButton>
+    <RadzenButton Text="Agregar" ButtonStyle="ButtonStyle.Success" Click="@(() => Editar(new cliente()))"></RadzenButton>
 
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-                Data="@clientes" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="@clientes" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
 
-    <Columns>
-        <RadzenDataGridColumn Property="id_cliente" Title="ID" Width="50px" />
-        <RadzenDataGridColumn Property="nombre_cliente" Title="Nombre" Width="150px" />
-        <RadzenDataGridColumn Property="telefono_cliente" Title="Teléfono" Width="100px" />
-        <RadzenDataGridColumn Property="direccion_cliente" Title="Dirección" Width="200px" />
-        <RadzenDataGridColumn Title="Acciones">
-            <Template Context="data">
-                <RadzenButton Click="@(() => Editar(data))" ButtonStyle="ButtonStyle.Warning" Icon="edit"></RadzenButton>
-                <RadzenButton Click="@(() => Eliminar(data))" ButtonStyle="ButtonStyle.Danger" Icon="delete"></RadzenButton>
-            </Template>
-        </RadzenDataGridColumn>
-    </Columns>
-</RadzenDataGrid>
-
+        <Columns>
+            <RadzenDataGridColumn Property="id_cliente" Title="ID" Width="50px" />
+            <RadzenDataGridColumn Property="nombre_cliente" Title="Nombre" Width="150px" />
+            <RadzenDataGridColumn Property="telefono_cliente" Title="Teléfono" Width="100px" />
+            <RadzenDataGridColumn Property="direccion_cliente" Title="Dirección" Width="200px" />
+            <RadzenDataGridColumn Title="Acciones">
+                <Template Context="data">
+                    <RadzenButton Click="@(() => Editar(data))" ButtonStyle="ButtonStyle.Warning" Icon="edit" Size="ButtonSize.Small" />
+                    <RadzenButton Click="@(() => Eliminar(data))" ButtonStyle="ButtonStyle.Danger" Icon="delete" Size="ButtonSize.Small" class="ms-1" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 }
 <br />
 <br />
@@ -62,6 +61,15 @@ else
     protected async Task Editar(cliente cliente)
     {
         string titulo = cliente.id_cliente == 0 ? "Nuevo Cliente" : $"Editar {cliente.nombre_cliente}";
+        
+        // Creamos una copia local para trabajar en el diálogo
+        var clienteEdicion = new cliente
+        {
+            id_cliente = cliente.id_cliente,
+            nombre_cliente = cliente.nombre_cliente,
+            telefono_cliente = cliente.telefono_cliente,
+            direccion_cliente = cliente.direccion_cliente
+        };
 
         var result = await dialogService.OpenAsync(titulo, ds => @<RadzenStack Gap="1.5rem">
 
@@ -69,7 +77,7 @@ else
                 <div class="col-12">Nombre del Cliente</div>
             </div>
             <div class="row">
-                <div class="col-12"><RadzenTextBox @bind-Value="cliente.nombre_cliente" class="w-100"></RadzenTextBox></div>
+                <div class="col-12"><RadzenTextBox @bind-Value="clienteEdicion.nombre_cliente" class="w-100"></RadzenTextBox></div>
             </div>
 
             <div class="row">
@@ -77,19 +85,19 @@ else
                 <div class="col-6">Dirección</div>
             </div>
             <div class="row">
-                <div class="col-6"><RadzenTextBox @bind-Value="cliente.telefono_cliente" class="w-100"></RadzenTextBox></div>
-                <div class="col-6"><RadzenTextBox @bind-Value="cliente.direccion_cliente" class="w-100"></RadzenTextBox></div>
+                <div class="col-6"><RadzenTextBox @bind-Value="clienteEdicion.telefono_cliente" class="w-100"></RadzenTextBox></div>
+                <div class="col-6"><RadzenTextBox @bind-Value="clienteEdicion.direccion_cliente" class="w-100"></RadzenTextBox></div>
             </div>
 
             <div class="row">
                 <div class="col-6"></div>
                 <div class="col-3">
                     <RadzenButton Text="Guardar" ButtonStyle="ButtonStyle.Primary"
-                                  Click="@(()=>Guardar(cliente))"></RadzenButton>
+                                  Click="@(() => GuardarDesdeDialog(clienteEdicion, ds))"></RadzenButton>
                 </div>
                 <div class="col-3">
                     <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Secondary"
-                                  Click="@(()=>ds.Close(false))"></RadzenButton>
+                                  Click="@(() => ds.Close(false))"></RadzenButton>
                 </div>
             </div>
 
@@ -105,14 +113,16 @@ else
 
         if (result == true)
         {
-            await Guardar(cliente);
+            ActualizarTabla();
         }
     }
 
-    protected async Task Guardar(cliente cliente)
+    protected async Task GuardarDesdeDialog(cliente cliente, DialogService ds)
     {
         cliente resultado;
-        if (cliente.id_cliente == 0)
+        bool esNuevo = cliente.id_cliente == 0;
+
+        if (esNuevo)
         {
             resultado = await clienteManager.Agregar(cliente);
         }
@@ -123,11 +133,31 @@ else
 
         if (resultado != null)
         {
-            dialogService.Close(true);
+            ds.Close(true);
             ActualizarTabla();
+            
+            // Mostrar notificación de éxito
+            string mensaje = esNuevo 
+                ? $"Cliente '{resultado.nombre_cliente}' registrado correctamente" 
+                : $"Cliente '{resultado.nombre_cliente}' actualizado correctamente";
+            
+            notificationService.Notify(new NotificationMessage { 
+                Severity = NotificationSeverity.Success,
+                Summary = esNuevo ? "Cliente registrado" : "Cliente actualizado",
+                Detail = mensaje,
+                Duration = 4000
+            });
         }
         else
         {
+            // Mostrar notificación de error junto con el diálogo de alerta
+            notificationService.Notify(new NotificationMessage {
+                Severity = NotificationSeverity.Error,
+                Summary = "Error",
+                Detail = clienteManager.Error,
+                Duration = 6000
+            });
+            
             await dialogService.Alert(clienteManager.Error, "Error al guardar");
         }
     }
@@ -142,12 +172,26 @@ else
             var eliminado = await clienteManager.Eliminar(cliente.id_cliente);
             if (eliminado)
             {
-                Console.WriteLine("Cliente eliminado exitosamente");
+                // Mostrar notificación de éxito
+                notificationService.Notify(new NotificationMessage {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Cliente eliminado",
+                    Detail = $"El cliente '{cliente.nombre_cliente}' ha sido eliminado correctamente",
+                    Duration = 4000
+                });
+                
                 ActualizarTabla();
             }
             else
             {
-                Console.WriteLine($"No se pudo eliminar: {clienteManager.Error}");
+                // Mostrar notificación de error
+                notificationService.Notify(new NotificationMessage {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error al eliminar",
+                    Detail = clienteManager.Error,
+                    Duration = 6000
+                });
+                
                 await dialogService.Alert(clienteManager.Error, "Error al eliminar");
             }
         }

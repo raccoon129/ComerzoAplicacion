@@ -1,13 +1,30 @@
 ﻿@using COMMON.Entidades
 @using Web.Components.Pages.Componentes
+@using BIZ
+@using COMMON.Validadores
 @inject DialogService DialogService
 
 <div class="container-fluid">
     <div class="card">
         <div class="card-body">
             <div class="text-center mb-4">
-                <h4>Ticket de Venta</h4>
-                <h5 class="text-muted">Venta #@IdVenta</h5>
+                @if (informacionComercio != null)
+                {
+                    <h3>@informacionComercio.nombre_comercio</h3>
+                    @if (!string.IsNullOrEmpty(informacionComercio.razon_social))
+                    {
+                        <p>@informacionComercio.razon_social</p>
+                    }
+                    @if (!string.IsNullOrEmpty(informacionComercio.descripcion))
+                    {
+                        <small class="text-muted">@informacionComercio.descripcion</small>
+                    }
+                }
+                else
+                {
+                    <h4>Ticket de Venta</h4>
+                }
+                <h5 class="text-muted mt-2">Venta #@IdVenta</h5>
                 <p>@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</p>
             </div>
 
@@ -43,6 +60,10 @@
 
             <div class="text-center">
                 <p>¡Gracias por su compra!</p>
+                @if (informacionComercio != null && informacionComercio.fecha_creacion.Year > 2000)
+                {
+                    <small class="text-muted">Desde @informacionComercio.fecha_creacion.Year a su servicio</small>
+                }
             </div>
         </div>
     </div>
@@ -57,6 +78,34 @@
     [Parameter] public int IdVenta { get; set; }
     [Parameter] public List<ModalNuevaVenta.ProductoSeleccionado> ProductosVendidos { get; set; }
     [Parameter] public decimal TotalVenta { get; set; }
+
+    // Añadimos el manager de información del comercio
+    private InformacionComercioManager _informacionComercioManager;
+    private informacion_comercio informacionComercio;
+
+    protected override void OnInitialized()
+    {
+        // Inicializamos el manager con su validador
+        _informacionComercioManager = new InformacionComercioManager(new informacionComercioValidator());
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInformacionComercio();
+    }
+
+    private async Task CargarInformacionComercio()
+    {
+        try
+        {
+            informacionComercio = await _informacionComercioManager.ObtenerInformacionComercio();
+        }
+        catch (Exception)
+        {
+            // Podríamos manejar el error, pero si falla simplemente no se mostrará la información
+            informacionComercio = null;
+        }
+    }
 
     private void Imprimir()
     {
