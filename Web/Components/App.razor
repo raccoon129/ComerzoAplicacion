@@ -17,6 +17,19 @@
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js?v=@(typeof(Radzen.Colors).Assembly.GetName().Version)"></script>
+    <script>
+        function imprimirTicket(htmlContent) {
+            var printWindow = window.open('', '_blank', 'height=600,width=800');
+            if (printWindow) {
+                printWindow.document.write(htmlContent);
+                printWindow.document.close();
+                printWindow.focus(); // Necesario 
+                printWindow.print();
+            } else {
+                alert('Por favor, deshabilita el bloqueador de ventanas emergentes para imprimir el ticket.');
+            }
+        }
+    </script>
 </body>
 
 </html>

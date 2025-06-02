@@ -93,7 +93,7 @@
 
 @code {
     [Parameter] public int IdVenta { get; set; }
-    
+
     // Recibir los managers como parámetros
     [Parameter] public VentaManager VentaManager { get; set; }
     [Parameter] public VentaDetalleManager VentaDetalleManager { get; set; }
@@ -123,7 +123,7 @@
                 NotificationService.Notify(NotificationSeverity.Error, "Error", "No se han inicializado los managers correctamente");
                 return;
             }
-            
+
             // Cargar la venta
             venta = await VentaManager.ObtenerPorId(IdVenta);
             if (venta == null)
@@ -165,7 +165,7 @@
     private void PrepararDatosTicket()
     {
         productosVendidos.Clear();
-        
+
         // Crear objetos ProductoSeleccionado a partir de los detalles de venta
         foreach (var detalle in detalles)
         {
@@ -187,10 +187,11 @@
         {
             { "IdVenta", IdVenta },
             { "ProductosVendidos", productosVendidos },
-            { "TotalVenta", venta.monto_total_venta }
+            { "TotalVenta", venta.monto_total_venta },
+            { "FechaHoraVenta", venta.fecha_hora_venta } // Añadir fecha y hora de la venta
         };
 
-        await DialogService.OpenAsync<TicketVentaComponent>("Ticket de Venta", 
+        await DialogService.OpenAsync<TicketVentaComponent>("Ticket de Venta",
             parameters,
             new DialogOptions { Width = "500px" });
     }

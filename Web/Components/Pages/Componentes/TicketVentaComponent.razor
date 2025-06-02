@@ -3,6 +3,7 @@
 @using BIZ
 @using COMMON.Validadores
 @inject DialogService DialogService
+@inject IJSRuntime JSRuntime
 
 <div class="container-fluid">
     <div class="card">
@@ -25,7 +26,7 @@
                     <h4>Ticket de Venta</h4>
                 }
                 <h5 class="text-muted mt-2">Venta #@IdVenta</h5>
-                <p>@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</p>
+                <p>@FechaHoraVenta.ToString("dd/MM/yyyy HH:mm:ss")</p>
             </div>
 
             <div class="table-responsive mb-3">
@@ -78,6 +79,7 @@
     [Parameter] public int IdVenta { get; set; }
     [Parameter] public List<ModalNuevaVenta.ProductoSeleccionado> ProductosVendidos { get; set; }
     [Parameter] public decimal TotalVenta { get; set; }
+    [Parameter] public DateTime FechaHoraVenta { get; set; } // Nuevo parámetro
 
     // Añadimos el manager de información del comercio
     private InformacionComercioManager _informacionComercioManager;
@@ -87,6 +89,10 @@
     {
         // Inicializamos el manager con su validador
         _informacionComercioManager = new InformacionComercioManager(new informacionComercioValidator());
+        if (FechaHoraVenta == default(DateTime)) // Si no se pasa la fecha, usar la actual como fallback
+        {
+            FechaHoraVenta = DateTime.Now;
+        }
     }
 
     protected override async Task OnInitializedAsync()
@@ -106,10 +112,84 @@
             informacionComercio = null;
         }
     }
-
-    private void Imprimir()
+    //A PARTIR DE AQUI SE GENERA EL TICKET DE VENTA EN HTML PARA IMPRIMIR (Usa JavaScript pero este Append lo hizo Gemini, gracias a dios que funciona)
+    //en app.razor se agregó el script para imprimir el ticket así a lo bruto. No hay tiempo, algún día quizá se refactorizará.
+    private async Task Imprimir()
     {
-        // Aquí se implementaría la lógica de impresión
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<html><head><title>Ticket de Venta</title>");
+        sb.Append("<style>");
+        sb.Append("body { font-family: Arial, sans-serif; margin: 20px; }");
+        sb.Append(".ticket { border: 1px solid #ccc; padding: 15px; width: 300px; margin: auto; }");
+        sb.Append(".text-center { text-align: center; }");
+        sb.Append(".text-end { text-align: right; }");
+        sb.Append("h3, h4, h5, p, small { margin: 5px 0; }");
+        sb.Append("table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }");
+        sb.Append("th, td { border-bottom: 1px solid #eee; padding: 5px; }");
+        sb.Append("th { text-align: left; background-color: #f9f9f9; }");
+        sb.Append("tfoot th { background-color: #f0f0f0; font-weight: bold; }");
+        sb.Append(".mb-3 { margin-bottom: 1rem !important; }");
+        sb.Append(".mt-2 { margin-top: 0.5rem !important; }");
+        sb.Append(".text-muted { color: #6c757d !important; }");
+        sb.Append("</style>");
+        sb.Append("</head><body>");
+        sb.Append("<div class='ticket'>");
+
+        // Encabezado del ticket
+        sb.Append("<div class='text-center mb-4'>");
+        if (informacionComercio != null)
+        {
+            sb.Append($"<h3>{System.Net.WebUtility.HtmlEncode(informacionComercio.nombre_comercio)}</h3>");
+            if (!string.IsNullOrEmpty(informacionComercio.razon_social))
+            {
+                sb.Append($"<p>{System.Net.WebUtility.HtmlEncode(informacionComercio.razon_social)}</p>");
+            }
+            if (!string.IsNullOrEmpty(informacionComercio.descripcion))
+            {
+                sb.Append($"<small class='text-muted'>{System.Net.WebUtility.HtmlEncode(informacionComercio.descripcion)}</small>");
+            }
+        }
+        else
+        {
+            sb.Append("<h4>Ticket de Venta</h4>");
+        }
+        sb.Append($"<h5 class='text-muted mt-2'>Venta #{IdVenta}</h5>");
+        sb.Append($"<p>{FechaHoraVenta.ToString("dd/MM/yyyy HH:mm:ss")}</p>"); // Usar FechaHoraVenta
+        sb.Append("</div>");
+
+        // Tabla de productos
+        sb.Append("<div class='table-responsive mb-3'>");
+        sb.Append("<table class='table table-sm'>");
+        sb.Append("<thead><tr><th>Producto</th><th class='text-center'>Cant.</th><th class='text-end'>P.Unit</th><th class='text-end'>Subtotal</th></tr></thead>");
+        sb.Append("<tbody>");
+        foreach (var item in ProductosVendidos)
+        {
+            sb.Append("<tr>");
+            sb.Append($"<td>{System.Net.WebUtility.HtmlEncode(item.Producto.nombre_producto)}</td>");
+            sb.Append($"<td class='text-center'>{item.Cantidad}</td>");
+            sb.Append($"<td class='text-end'>{item.Producto.precio_producto:C}</td>");
+            sb.Append($"<td class='text-end'>{item.Subtotal:C}</td>");
+            sb.Append("</tr>");
+        }
+        sb.Append("</tbody>");
+        sb.Append("<tfoot><tr><th colspan='3' class='text-end'>Total:</th>");
+        sb.Append($"<th class='text-end'>{TotalVenta:C}</th></tr></tfoot>");
+        sb.Append("</table>");
+        sb.Append("</div>");
+
+        // Pie del ticket
+        sb.Append("<div class='text-center'>");
+        sb.Append("<p>¡Gracias por su compra!</p>");
+        if (informacionComercio != null && informacionComercio.fecha_creacion.Year > 2000)
+        {
+            sb.Append($"<small class='text-muted'>Desde {informacionComercio.fecha_creacion.Year} a su servicio</small>");
+        }
+        sb.Append("</div>");
+
+        sb.Append("</div>");
+        sb.Append("</body></html>");
+
+        await JSRuntime.InvokeVoidAsync("imprimirTicket", sb.ToString());
     }
 
     private void Cerrar()
