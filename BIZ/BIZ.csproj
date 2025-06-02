@@ -15,4 +15,8 @@
     <ProjectReference Include="..\DAL\DAL.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Parametros\" />
+  </ItemGroup>
+
 </Project>
