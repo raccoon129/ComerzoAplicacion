@@ -219,29 +219,15 @@
         }
     }
 
-    // Carga el resumen de ventas del día
+    // Carga el resumen de ventas del día utilizando el método del manager
     private async Task CargarResumenVentas()
     {
         try
         {
-            var ventasHoy = await _ventaManager.ObtenerVentasDelDia();
-
-            if (ventasHoy != null)
-            {
-                totalVentasDia = ventasHoy.Sum(v => v.monto_total_venta);
-
-                // Obtener todos los detalles de ventas para contar productos vendidos
-                int totalItems = 0;
-                foreach (var venta in ventasHoy)
-                {
-                    var detalles = await _ventaDetalleManager.ObtenerPorVenta(venta.id_venta);
-                    if (detalles != null)
-                    {
-                        totalItems += detalles.Sum(d => d.cantidad_vendida);
-                    }
-                }
-                totalProductosVendidos = totalItems;
-            }
+            // Utilizar el nuevo método del VentaManager que encapsula la lógica
+            var resumen = await _ventaManager.ObtenerResumenVentasDiario(_ventaDetalleManager);
+            totalVentasDia = resumen.MontoTotal;
+            totalProductosVendidos = resumen.ProductosVendidos;
         }
         catch (Exception ex)
         {
@@ -249,53 +235,27 @@
         }
     }
 
-    // Carga los productos más populares
+    // Carga los productos más populares utilizando el método del manager
     private async Task CargarProductosPopulares()
     {
         try
         {
-            var ventasHoy = await _ventaManager.ObtenerVentasDelDia();
-            Dictionary<int, int> productosCantidad = new Dictionary<int, int>();
+            // Utilizar el nuevo método del VentaDetalleManager que encapsula la lógica
+            var populares = await _ventaDetalleManager.ObtenerProductosPopularesDiarios(_ventaManager, _productoManager);
 
-            if (ventasHoy != null && ventasHoy.Any())
+            if (populares != null)
             {
-                foreach (var venta in ventasHoy)
+                // Transformar al tipo local para mantener la compatibilidad con la UI
+                productosPopulares = populares.Select(p => new ProductoPopular
                 {
-                    var detalles = await _ventaDetalleManager.ObtenerPorVenta(venta.id_venta);
-                    if (detalles != null)
-                    {
-                        foreach (var detalle in detalles)
-                        {
-                            if (!productosCantidad.ContainsKey(detalle.id_producto))
-                            {
-                                productosCantidad[detalle.id_producto] = 0;
-                            }
-                            productosCantidad[detalle.id_producto] += detalle.cantidad_vendida;
-                        }
-                    }
-                }
-
-                // Obtener los productos más vendidos
-                var productos = await _productoManager.ObtenerTodos();
-                var totalVendido = productosCantidad.Values.Sum();
-
-                if (productos != null && totalVendido > 0)
-                {
-                    productosPopulares = productosCantidad
-                        .OrderByDescending(p => p.Value)
-                        .Take(5)
-                        .Select(p =>
-                        {
-                            var prod = productos.FirstOrDefault(x => x.id_producto == p.Key);
-                            return new ProductoPopular
-                            {
-                                Nombre = prod?.nombre_producto ?? $"Producto #{p.Key}",
-                                Cantidad = p.Value,
-                                PorcentajeVentas = (int)Math.Round(p.Value * 100.0 / totalVendido)
-                            };
-                        })
-                        .ToList();
-                }
+                    Nombre = p.Nombre,
+                    Cantidad = p.Cantidad,
+                    PorcentajeVentas = p.PorcentajeVentas
+                }).ToList();
+            }
+            else
+            {
+                productosPopulares = new List<ProductoPopular>();
             }
         }
         catch (Exception ex)
@@ -304,17 +264,17 @@
         }
     }
 
-    // Carga los productos con stock bajo
+    // Carga los productos con stock bajo utilizando el método del manager
     private async Task CargarInventarioBajo()
     {
         try
         {
-            var productos = await _productoManager.ObtenerTodos();
+            // Utilizar el nuevo método del ProductoManager que encapsula la lógica
+            productosBajoStock = await _productoManager.ObtenerProductosBajoStock(5);
 
-            if (productos != null)
+            if (productosBajoStock == null)
             {
-                // Consideramos bajo stock menos de 5 unidades
-                productosBajoStock = productos.Where(p => p.stock_producto < 5).ToList();
+                productosBajoStock = new List<producto>();
             }
         }
         catch (Exception ex)
@@ -323,18 +283,17 @@
         }
     }
 
-    // Carga las últimas ventas realizadas
+    // Carga las últimas ventas realizadas utilizando el método del manager
     private async Task CargarUltimasVentas()
     {
         try
         {
-            var ventas = await _ventaManager.ObtenerTodos();
-            if (ventas != null)
+            // Utilizar el nuevo método del VentaManager que encapsula la lógica
+            ultimasVentas = await _ventaManager.ObtenerUltimasVentas(10);
+
+            if (ultimasVentas == null)
             {
-                ultimasVentas = ventas
-                    .OrderByDescending(v => v.fecha_hora_venta)
-                    .Take(10)
-                    .ToList();
+                ultimasVentas = new List<venta>();
             }
         }
         catch (Exception ex)

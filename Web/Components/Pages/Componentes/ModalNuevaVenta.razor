@@ -334,10 +334,10 @@
             {
                 fecha_hora_venta = DateTime.Now,
                 monto_total_venta = totalVenta,
-                // TODO: Ajustar la asignación de id_usuario según la implementación real del sistema de usuarios.
-                // Actualmente, se asigna 1 si Params.UsuarioConectado no es null, o 0 en caso contrario.
-                // Esto debería reemplazarse por el ID real del usuario autenticado.
+
+                //ESTE HAY QUE TRAERLO DE BIZ
                 id_usuario = Params.UsuarioConectado != null ? 1 : 0 
+                //id_usuario = BIZ.UsuarioConectado?.id_usuario ?? 0, // Asignar el ID del usuario conectado
             };
 
             // Guardar la venta en la base de datos.

@@ -37,5 +37,30 @@ namespace BIZ
                 return null;
             }
         }
+
+        /// <summary>
+        /// Obtiene los productos con stock por debajo del umbral especificado
+        /// </summary>
+        /// <param name="umbral">Umbral mínimo de stock</param>
+        /// <returns>Lista de productos con stock bajo</returns>
+        public async Task<List<producto>> ObtenerProductosBajoStock(int umbral = 5)
+        {
+            try
+            {
+                var productos = await ObtenerTodos();
+
+                if (productos == null)
+                {
+                    return null;
+                }
+
+                return productos.Where(p => p.stock_producto < umbral).ToList();
+            }
+            catch (Exception ex)
+            {
+                Error = $"Error al obtener productos con bajo stock: {ex.Message}";
+                return null;
+            }
+        }
     }
 }
