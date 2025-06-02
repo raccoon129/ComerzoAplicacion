@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Comerzo.Pages.LoginPage"
+             Title="Comerzo"
+             BackgroundColor="#F4A83A">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="40" Padding="20" VerticalOptions="Center">
+
+            <!-- Frame que contiene todo el formulario -->
+            <Frame CornerRadius="20" 
+                   Padding="25"
+                   BackgroundColor="White"
+                   BorderColor="#DDDDDD"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"
+                   WidthRequest="400">
+
+                <VerticalStackLayout Spacing="25" HorizontalOptions="Center">
+
+                    <!-- Logo y título -->
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="Organice las ventas en su comercio" 
+                               FontSize="32"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"
+                               HorizontalOptions="Center"
+                               TextColor="Black"/>
+
+                    </VerticalStackLayout>
+
+                    <!-- Mensaje de bienvenida -->
+                    <Label Text="¡Empecemos!" 
+                           FontSize="20"
+                           HorizontalTextAlignment="Center"
+                           HorizontalOptions="Center"
+                           TextColor="Black"/>
+
+                    <!-- Formulario de inicio de sesión -->
+                    <VerticalStackLayout Spacing="15" HorizontalOptions="FillAndExpand">
+                        <!-- Campo de nombre de usuario -->
+                        <VerticalStackLayout Spacing="5" HorizontalOptions="FillAndExpand">
+                            <Label Text="Nombre de Usuario:" 
+                                   FontSize="14"
+                                   HorizontalTextAlignment="Center"
+                                   HorizontalOptions="Center"
+                                   TextColor="Black"/>
+                            <Entry Placeholder="Ingrese su Usuario" 
+                                   TextColor="Gray"
+                                   HorizontalOptions="FillAndExpand"
+                                   HorizontalTextAlignment="Center"
+                                   BackgroundColor="#FAFAFA"
+                                   x:Name="entNombre"/>
+                        </VerticalStackLayout>
+
+                        <!-- Campo de contraseña -->
+                        <VerticalStackLayout Spacing="5" HorizontalOptions="FillAndExpand">
+                            <Label Text="Contraseña:" 
+                                   FontSize="14"
+                                   HorizontalTextAlignment="Center"
+                                   HorizontalOptions="Center"
+                                   TextColor="Black"/>
+                            <Entry Placeholder="*********" 
+                                   IsPassword="True"
+                                   TextColor="Gray"
+                                   HorizontalOptions="FillAndExpand"
+                                   HorizontalTextAlignment="Center"
+                                   BackgroundColor="#FAFAFA"
+                                   x:Name="entClave"/>
+                        </VerticalStackLayout>
+
+                        <!-- Botón de inicio de sesión -->
+                        <Button Text="Iniciar sesión" 
+                                x:Name="btnInciarSesion"
+                                CornerRadius="20"
+                                Margin="0,20,0,0"
+                                BackgroundColor="#6200EE"
+                                TextColor="White"
+                                FontSize="16"
+                                HorizontalOptions="Center"
+                                HeightRequest="50"
+                                WidthRequest="200"
+                                Clicked="btnIniciarSesion_Clicked"/>
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </Frame>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -3,13 +3,43 @@
     x:Class="Comerzo.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:Comerzo"
+    xmlns:local="clr-namespace:Comerzo.Pages"
     Shell.FlyoutBehavior="Disabled"
-    Title="Comerzo">
+    Title="Comerzo"
+    Shell.TabBarBackgroundColor="White"  
+    Shell.TabBarForegroundColor="#D57F12" 
+    Shell.TabBarUnselectedColor="LightGray" 
+    Shell.TabBarTitleColor="#D57F12">
 
     <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    Title="Login"
+    ContentTemplate="{DataTemplate local:LoginPage}"
+    Route="MainPage" />
+    <TabBar>
+        <Tab Title="Inicio"
+             Icon="inicio.png">
+            <ShellContent
+            ContentTemplate="{DataTemplate local:InicioPage}" 
+            Route="InicioPage"/>
+        </Tab>
+        <Tab Title="Ventas"
+             Icon="venta.png">
+            <ShellContent
+            ContentTemplate="{DataTemplate local:VentaPage}"
+            Route="VentaPage"/>
+        </Tab>
+        <Tab Title="Inventario"
+             Icon="inventario.png">
+            <ShellContent
+            ContentTemplate="{DataTemplate local:InventarioPage}" 
+            Route="InventarioPage"/>
+        </Tab>
+        <Tab Title="Configuracion"
+             Icon="configuracion.png">
+            <ShellContent
+            ContentTemplate="{DataTemplate local:ConfiguracionPage}"
+            Route="ConfiguracionPage"/>
+        </Tab>
+    </TabBar>
 
 </Shell>
