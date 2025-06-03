@@ -2,11 +2,113 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Comerzo.Pages.VentaPage"
-             Title="VentaPage">
-    <VerticalStackLayout>
-        <Label 
-            Text="Welcome to .NET MAUI!"
-            VerticalOptions="Center" 
-            HorizontalOptions="Center" />
-    </VerticalStackLayout>
+             Title="Últimas Ventas">
+
+    <RefreshView IsRefreshing="{Binding Cargando}"
+                 Command="{Binding CargarDatosCommand}">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20">
+
+                <!-- Resumen del día -->
+                <Frame BorderColor="{AppThemeBinding Light=LightGray, Dark=Gray}"
+                       CornerRadius="10"
+                       Padding="15"
+                       HasShadow="True">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Resumen del día" 
+                               FontSize="18"
+                               FontAttributes="Bold"/>
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+                            <Label Text="Ventas de hoy:" 
+                                   Grid.Column="0" Grid.Row="0"/>
+                            <Label Text="{Binding TotalVentasDia, StringFormat='${0:N2}'}" 
+                                   Grid.Column="1" Grid.Row="0"
+                                   FontAttributes="Bold"/>
+
+                            <Label Text="Productos vendidos:" 
+                                   Grid.Column="0" Grid.Row="1"/>
+                            <Label Text="{Binding TotalProductosVendidos}" 
+                                   Grid.Column="1" Grid.Row="1"
+                                   FontAttributes="Bold"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Últimas Ventas Card -->
+                <Frame BorderColor="Transparent"
+                       CornerRadius="10"
+                       Padding="0"
+                       HasShadow="True">
+                    <VerticalStackLayout>
+                        <!-- Card Header -->
+                        <Grid BackgroundColor="#FFE0A6"
+                              HeightRequest="60"
+                              Padding="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Label Text="Últimas ventas"
+                                   FontSize="18"
+                                   TextColor="Black"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+
+                        <!-- Card Body -->
+                        <VerticalStackLayout Padding="15" Spacing="10">
+                            <!-- Loading Indicator -->
+                            <ActivityIndicator IsRunning="{Binding Cargando}"
+                                               IsVisible="{Binding Cargando}"
+                                               Color="{AppThemeBinding Light=#17a2b8, Dark=#138496}"
+                                               HorizontalOptions="Center"/>
+
+                            <!-- Sales List -->
+                            <CollectionView ItemsSource="{Binding UltimasVentas}"
+                                          IsVisible="{Binding ShowSalesList}">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="0,10"
+                                              ColumnDefinitions="70,*,*,100">
+                                           
+                                            <!-- Date -->
+                                            <Label Text="{Binding FechaHoraVenta, StringFormat='{0:dd/MM/yyyy HH:mm}'}"
+                                                   Grid.Column="1"
+                                                   VerticalOptions="Center"
+                                                   TextColor="White"/>
+
+                                            <!-- Total -->
+                                            <Label Text="{Binding MontoTotalVenta, StringFormat='{0:C}'}"
+                                                   Grid.Column="2"
+                                                   VerticalOptions="Center"
+                                                   TextColor="White"/>
+
+                                            <!-- Details Button -->
+                                            <Button Grid.Column="3"
+                                                    Text="Ver"
+                                                    BackgroundColor="{AppThemeBinding Light=#17a2b8, Dark=#138496}"
+                                                    TextColor="White"
+                                                    CornerRadius="5"
+                                                    HeightRequest="30"
+                                                    WidthRequest="60"
+                                                    VerticalOptions="Center"
+                                                    HorizontalOptions="Start"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                            <!-- No Sales Message -->
+                            <Label Text="No hay ventas registradas."
+                                   IsVisible="{Binding ShowNoSalesMessage}"
+                                   HorizontalOptions="Center"
+                                   TextColor="{AppThemeBinding Light=Gray, Dark=LightGray}"/>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Frame>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
 </ContentPage>
