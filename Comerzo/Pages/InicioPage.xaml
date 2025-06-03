@@ -3,86 +3,109 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Comerzo.Pages.InicioPage"
              Title="Tu resumen del día">
-
     <RefreshView IsRefreshing="{Binding Cargando}"
                  Command="{Binding CargarDatosCommand}">
         <ScrollView>
-            <VerticalStackLayout Padding="20" Spacing="20">
-
+            <VerticalStackLayout Padding="20"
+                                 Spacing="20">
                 <!-- Header -->
-                <Label Text="Tu resumen del día" 
-                       FontSize="24"
-                       FontAttributes="Bold"
-                       HorizontalOptions="Center"/>
 
                 <!-- Summary Frame -->
-                <Frame BorderColor="LightGray" 
+                <Frame BorderColor="LightGray"
                        CornerRadius="10"
                        Padding="15"
                        HasShadow="True">
                     <VerticalStackLayout Spacing="10">
-                        <Label Text="Resumen del día" 
+                        <Label Text="Resumen del día"
                                FontSize="18"
-                               FontAttributes="Bold"/>
-
-                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
-                            <Label Text="Ventas de hoy:" 
-                                   Grid.Column="0" Grid.Row="0"/>
-                            <Label Text="{Binding TotalVentasDia, StringFormat='${0:N2}'}" 
-                                   Grid.Column="1" Grid.Row="0"
-                                   FontAttributes="Bold"/>
-
-                            <Label Text="Productos vendidos:" 
-                                   Grid.Column="0" Grid.Row="1"/>
-                            <Label Text="{Binding TotalProductosVendidos}" 
-                                   Grid.Column="1" Grid.Row="1"
-                                   FontAttributes="Bold"/>
+                               FontAttributes="Bold" />
+                        <!-- Indicador de carga para el resumen -->
+                        <ActivityIndicator IsRunning="{Binding Cargando}"
+                                           IsVisible="{Binding Cargando}"
+                                           HorizontalOptions="Center" />
+                        <Grid ColumnDefinitions="*,*"
+                              RowDefinitions="Auto,Auto"
+                              IsVisible="{Binding !Cargando}">
+                            <Label Text="Ventas de hoy:"
+                                   Grid.Column="0"
+                                   Grid.Row="0" />
+                            <Label Text="{Binding TotalVentasDia, StringFormat='${0:N2}'}"
+                                   Grid.Column="1"
+                                   Grid.Row="0"
+                                   FontAttributes="Bold" />
+                            <Label Text="Productos vendidos:"
+                                   Grid.Column="0"
+                                   Grid.Row="1" />
+                            <Label Text="{Binding TotalProductosVendidos}"
+                                   Grid.Column="1"
+                                   Grid.Row="1"
+                                   FontAttributes="Bold" />
                         </Grid>
                     </VerticalStackLayout>
                 </Frame>
-
                 <!-- Popular Products Frame -->
-                <Frame BorderColor="LightGray" 
+                <Frame BorderColor="LightGray"
                        CornerRadius="10"
                        Padding="15"
                        HasShadow="True">
                     <VerticalStackLayout Spacing="10">
-                        <Label Text="Productos populares" 
+                        <Label Text="Productos populares"
                                FontSize="18"
-                               FontAttributes="Bold"/>
-
-                        <CollectionView ItemsSource="{Binding ProductosPopulares}">
+                               FontAttributes="Bold" />
+                        <!-- Indicador de carga para productos populares -->
+                        <ActivityIndicator IsRunning="{Binding Cargando}"
+                                           IsVisible="{Binding Cargando}"
+                                           HorizontalOptions="Center" />
+                        <!-- Mensaje cuando no hay productos populares -->
+                        <Label Text="No hay ventas registradas hoy"
+                               IsVisible="{Binding MostrarMensajeNoProductosPopulares}"
+                               HorizontalOptions="Center"
+                               TextColor="Gray" />
+                        <CollectionView ItemsSource="{Binding ProductosPopulares}"
+                                        IsVisible="{Binding HayProductosPopulares}">
                             <CollectionView.ItemTemplate>
                                 <DataTemplate>
-                                    <VerticalStackLayout Spacing="5">
-                                        <Label Text="{Binding Nombre}" 
-                                               FontAttributes="Bold"/>
-                                        <Label Text="{Binding PorcentajeVentas, StringFormat='{0}%'}"/>
-                                        <Label Text="{Binding Cantidad, StringFormat='Vendidos hoy: {0}'}"/>
+                                    <VerticalStackLayout Spacing="5"
+                                                         Margin="0,0,0,10">
+                                        <Label Text="{Binding Nombre}"
+                                               FontAttributes="Bold" TextColor="DarkOrange" />
+                                        <Label Text="Porcentaje de ventas:"></Label>
+                                        <Label Text="{Binding PorcentajeVentas, StringFormat='{0}%'}" FontAttributes="Bold" />
+                                        <Label Text="{Binding Cantidad, StringFormat='Vendidos hoy: {0}'}" />
                                     </VerticalStackLayout>
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>
                         </CollectionView>
                     </VerticalStackLayout>
                 </Frame>
-
                 <!-- Low Inventory Frame -->
-                <Frame BorderColor="LightGray" 
+                <Frame BorderColor="LightGray"
                        CornerRadius="10"
                        Padding="15"
                        HasShadow="True">
                     <VerticalStackLayout Spacing="10">
-                        <Label Text="Inventario bajo" 
+                        <Label Text="Inventario bajo"
                                FontSize="18"
-                               FontAttributes="Bold"/>
-
-                        <CollectionView ItemsSource="{Binding ProductosBajoStock}">
+                               FontAttributes="Bold" />
+                        <!-- Indicador de carga para inventario bajo -->
+                        <ActivityIndicator IsRunning="{Binding Cargando}"
+                                           IsVisible="{Binding Cargando}"
+                                           HorizontalOptions="Center" />
+                        <!-- Mensaje cuando no hay productos con bajo stock -->
+                        <Label Text="No hay productos con inventario bajo"
+                               IsVisible="{Binding !HayProductosBajoStock}"
+                               HorizontalOptions="Start"
+                               TextColor="Green" />
+                        <CollectionView ItemsSource="{Binding ProductosBajoStock}"
+                                        IsVisible="{Binding HayProductosBajoStock}">
                             <CollectionView.ItemTemplate>
                                 <DataTemplate>
-                                    <VerticalStackLayout Spacing="5">
-                                        <Label Text="{Binding Nombre}" 
-                                               FontAttributes="Bold"/>
-                                        <Label Text="{Binding Stock, StringFormat='Quedan {0} unidades'}"/>
+                                    <VerticalStackLayout Spacing="5"
+                                                         Margin="0,0,0,10">
+                                        <Label Text="{Binding nombre_producto}"
+                                               FontAttributes="Bold" />
+                                        <Label Text="{Binding stock_producto, StringFormat='¡Atención! Quedan {0} unidades'}"
+                                               TextColor="Red" />
                                     </VerticalStackLayout>
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>
