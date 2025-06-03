@@ -2,11 +2,95 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Comerzo.Pages.InicioPage"
-             Title="InicioPage">
-    <VerticalStackLayout>
-        <Label 
-            Text="Welcome to .NET MAUI!"
-            VerticalOptions="Center" 
-            HorizontalOptions="Center" />
-    </VerticalStackLayout>
+         Title="Tu resumen del día">
+
+    <RefreshView IsRefreshing="{Binding Cargando}"
+                 Command="{Binding CargarDatosCommand}">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20">
+
+                <!-- Header -->
+                <Label Text="Tu resumen del día" 
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center"/>
+
+                <!-- Summary Frame -->
+                <Frame BorderColor="LightGray" 
+                       CornerRadius="10"
+                       Padding="15"
+                       HasShadow="True">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Resumen del día" 
+                               FontSize="18"
+                               FontAttributes="Bold"/>
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+                            <Label Text="Ventas de hoy:" 
+                                   Grid.Column="0" Grid.Row="0"/>
+                            <Label Text="{Binding TotalVentasDia, StringFormat='${0:N2}'}" 
+                                   Grid.Column="1" Grid.Row="0"
+                                   FontAttributes="Bold"/>
+
+                            <Label Text="Productos vendidos:" 
+                                   Grid.Column="0" Grid.Row="1"/>
+                            <Label Text="{Binding TotalProductosVendidos}" 
+                                   Grid.Column="1" Grid.Row="1"
+                                   FontAttributes="Bold"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Popular Products Frame -->
+                <Frame BorderColor="LightGray" 
+                       CornerRadius="10"
+                       Padding="15"
+                       HasShadow="True">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Productos populares" 
+                               FontSize="18"
+                               FontAttributes="Bold"/>
+
+                        <CollectionView ItemsSource="{Binding ProductosPopulares}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <VerticalStackLayout Spacing="5">
+                                        <Label Text="{Binding Nombre}" 
+                                               FontAttributes="Bold"/>
+                                        <Label Text="{Binding PorcentajeVentas, StringFormat='{0}%'}"/>
+                                        <Label Text="{Binding Cantidad, StringFormat='Vendidos hoy: {0}'}"/>
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Low Inventory Frame -->
+                <Frame BorderColor="LightGray" 
+                       CornerRadius="10"
+                       Padding="15"
+                       HasShadow="True">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Inventario bajo" 
+                               FontSize="18"
+                               FontAttributes="Bold"/>
+
+                        <CollectionView ItemsSource="{Binding ProductosBajoStock}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <VerticalStackLayout Spacing="5">
+                                        <Label Text="{Binding Nombre}" 
+                                               FontAttributes="Bold"/>
+                                        <Label Text="{Binding Stock, StringFormat='Quedan {0} unidades'}"/>
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Frame>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
 </ContentPage>
