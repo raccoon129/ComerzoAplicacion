@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Comerzo.Pages.NuevaVentaProcesoPage"
+             Title="Nueva Venta">
+    <Grid RowDefinitions="Auto, *, Auto">
+        <!-- Encabezado - Eliminada la barra de búsqueda -->
+        <VerticalStackLayout Grid.Row="0"
+                             Padding="20,10"
+                             Spacing="10">
+            <Label Text="Seleccionar Productos"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Start" />
+        </VerticalStackLayout>
+        <!-- Lista de productos -->
+        <Grid Grid.Row="1"
+              RowDefinitions="*, Auto">
+            <!-- Indicador de carga -->
+            <ActivityIndicator IsRunning="{Binding Cargando}"
+                               IsVisible="{Binding Cargando}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Color="{AppThemeBinding Light=#17a2b8, Dark=#138496}" />
+            <!-- Lista de productos disponibles -->
+            <ScrollView Grid.Row="0"
+                        IsVisible="{Binding !Cargando}">
+                <VerticalStackLayout Padding="20,0,20,20"
+                                     Spacing="15">
+                    <CollectionView ItemsSource="{Binding ProductosMostrados}">
+                        <CollectionView.EmptyView>
+                            <Label Text="No se encontraron productos disponibles"
+                                   HorizontalOptions="Center"
+                                   TextColor="Gray"
+                                   Margin="0,30,0,0" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Frame Margin="0,5"
+                                       Padding="15"
+                                       BorderColor="LightGray"
+                                       CornerRadius="10"
+                                       HasShadow="True">
+                                    <Grid RowDefinitions="Auto,Auto"
+                                          ColumnDefinitions="*, Auto">
+                                        <!-- Información del producto -->
+                                        <VerticalStackLayout Grid.Row="0"
+                                                             Grid.Column="0"
+                                                             Spacing="5">
+                                            <Label Text="{Binding nombre_producto}"
+                                                   FontSize="16"
+                                                   FontAttributes="Bold" />
+                                            <Label Text="{Binding descripcion_producto}"
+                                                   FontSize="14"
+                                                   TextColor="Gray"
+                                                   MaxLines="2"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding precio_producto, StringFormat='${0:N2}'}"
+                                                   FontSize="16"
+                                                   TextColor="DarkGreen"
+                                                   FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+                                        <!-- Stock -->
+                                        <Frame Grid.Row="0"
+                                               Grid.Column="1"
+                                               Padding="10,5"
+                                               BackgroundColor="#e8f3ff"
+                                               BorderColor="Transparent"
+                                               CornerRadius="5">
+                                            <StackLayout Orientation="Horizontal"
+                                                         Spacing="5">
+                                                <Label Text="{Binding stock_producto}"
+                                                       FontSize="14"
+                                                       TextColor="#007bff"
+                                                       FontAttributes="Bold" />
+                                            </StackLayout>
+                                        </Frame>
+                                        <!-- Controles de cantidad -->
+                                        <Grid Grid.Row="1"
+                                              Grid.Column="0"
+                                              Grid.ColumnSpan="2"
+                                              ColumnDefinitions="Auto,Auto,Auto,*"
+                                              Margin="0,10,0,0">
+                                            <Button Grid.Column="0"
+                                                    Text="-"
+                                                    WidthRequest="40"
+                                                    HeightRequest="40"
+                                                    CornerRadius="20"
+                                                    BackgroundColor="{AppThemeBinding Light=#6c757d, Dark=#495057}"
+                                                    TextColor="White"
+                                                    FontSize="16"
+                                                    FontAttributes="Bold"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DisminuirCantidadCommand}"
+                                                    CommandParameter="{Binding}" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding CantidadSeleccionada}"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center"
+                                                   Margin="15,0"
+                                                   FontSize="16"
+                                                   FontAttributes="Bold" />
+                                            <Button Grid.Column="2"
+                                                    Text="+"
+                                                    WidthRequest="40"
+                                                    HeightRequest="40"
+                                                    CornerRadius="20"
+                                                    BackgroundColor="{AppThemeBinding Light=#007bff, Dark=#0069d9}"
+                                                    TextColor="White"
+                                                    FontSize="16"
+                                                    FontAttributes="Bold"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.AgregarProductoCommand}"
+                                                    CommandParameter="{Binding}" />
+                                        </Grid>
+                                    </Grid>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </ScrollView>
+            <!-- Resumen de compra -->
+            <Frame Grid.Row="1"
+                   IsVisible="{Binding HayProductosSeleccionados}"
+                   BorderColor="LightGray"
+                   CornerRadius="10"
+                   Margin="20,0,20,10"
+                   Padding="15"
+                   BackgroundColor="{AppThemeBinding Light=#f8f9fa, Dark=#343a40}"
+                   HasShadow="True">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Resumen"
+                           FontSize="16"
+                           FontAttributes="Bold" />
+                    <CollectionView ItemsSource="{Binding ProductosSeleccionados}"
+                                    HeightRequest="{Binding ResumenHeight}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="Auto,*,Auto"
+                                      Padding="0,5">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding Cantidad, StringFormat='{0}x'}"
+                                           WidthRequest="30"
+                                           FontAttributes="Bold" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Producto.nombre_producto}"
+                                           Margin="10,0,0,0" />
+                                    <Label Grid.Column="2"
+                                           Text="{Binding Subtotal, StringFormat='${0:N2}'}"
+                                           FontAttributes="Bold"
+                                           HorizontalOptions="End" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                    <BoxView HeightRequest="1"
+                             Color="{AppThemeBinding Light=#dee2e6, Dark=#495057}"
+                             Margin="0,5" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0"
+                               Text="Total:"
+                               FontSize="16"
+                               FontAttributes="Bold" />
+                        <Label Grid.Column="1"
+                               Text="{Binding TotalVenta, StringFormat='${0:N2}'}"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#28a745, Dark=#20c997}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+        </Grid>
+        <!-- Botón finalizar -->
+        <Button Grid.Row="2"
+                Text="Completar Venta"
+                BackgroundColor="{AppThemeBinding Light=#28a745, Dark=#20c997}"
+                TextColor="White"
+                FontSize="16"
+                FontAttributes="Bold"
+                Command="{Binding CompletarVentaCommand}"
+                IsEnabled="{Binding BotonCompletarHabilitado}"
+                Margin="20" />
+    </Grid>
+</ContentPage>

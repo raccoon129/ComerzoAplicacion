@@ -3,8 +3,9 @@ using COMMON.Entidades;
 using COMMON.Validadores;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Windows.Input;
 
 namespace Comerzo.Pages;
 
@@ -93,6 +94,11 @@ public partial class InicioPage : ContentPage, INotifyPropertyChanged
 
     // Comando para la RefreshView
     public Command CargarDatosCommand { get; private set; }
+    // En la región de propiedades, agregar el comando para nueva venta
+    public ICommand NuevaVentaCommand { get; private set; }
+
+
+    
 
     // Managers para acceso a datos
     private VentaManager _ventaManager;
@@ -113,6 +119,8 @@ public partial class InicioPage : ContentPage, INotifyPropertyChanged
 
         // Inicializar el comando para recargar datos
         CargarDatosCommand = new Command(async () => await CargarDatos());
+
+        NuevaVentaCommand = new Command(async () => await NavegarANuevaVenta());
 
         // Establecer el BindingContext a esta misma página
         BindingContext = this;
@@ -276,6 +284,19 @@ public partial class InicioPage : ContentPage, INotifyPropertyChanged
             Debug.WriteLine($"Error al cargar inventario bajo: {ex}");
             await DisplayAlert("Error", $"Error al cargar inventario bajo: {ex.Message}", "OK");
             ProductosBajoStock.Clear();
+        }
+    }
+
+    // Agregar el método para navegar a la página de nueva venta
+    private async Task NavegarANuevaVenta()
+    {
+        try
+        {
+            await Navigation.PushAsync(new NuevaVentaProcesoPage());
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Error al abrir página de ventas: {ex.Message}", "OK");
         }
     }
 }
