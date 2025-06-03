@@ -21,7 +21,7 @@ public partial class LoginPage : ContentPage
         if (string.IsNullOrWhiteSpace(nombreUsuario) ||
             string.IsNullOrWhiteSpace(claveUsuario))
         {
-            await DisplayAlert("Focus", "Por favor, complete todos los campos.", "Ok");
+            await DisplayAlert("Comerzo", "Por favor, complete todos los campos.", "Ok");
             return;
         }
         await OnLogin(nombreUsuario, claveUsuario);
@@ -41,14 +41,14 @@ public partial class LoginPage : ContentPage
             }
             else
             {
-                await DisplayAlert("Focus", "Nombre de usuario y/o Contraseña incorrecta", "Ok");
+                await DisplayAlert("Comerzo", "Nombre de usuario y/o Contraseña incorrecta", "Ok");
             }
 
         }
         catch (Exception ex)
         {
             // Captura cualquier excepción inesperada durante la operación de base de datos
-            await DisplayAlert("Focus", $"Ocurrió un error inesperado: {ex.Message}", "Ok");
+            await DisplayAlert("Comerzo", $"Ocurrió un error inesperado: {ex.Message}", "Ok");
             // Registra los detalles de la excepción para depuración (ej. en la consola, o un servicio de logging)
             Console.WriteLine($"Error al guardar usuario en CrearCuentaPage: {ex.Message}");
         }
