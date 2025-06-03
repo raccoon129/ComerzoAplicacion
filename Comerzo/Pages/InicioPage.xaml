@@ -9,7 +9,13 @@
             <VerticalStackLayout Padding="20"
                                  Spacing="20">
                 <!-- Header -->
-
+                <!-- Botón para crear nueva venta -->
+                <Button Text="Nueva Venta"
+                        Grid.Column="1"
+                        Command="{Binding NuevaVentaCommand}"
+                        BackgroundColor="{AppThemeBinding Light=#28a745, Dark=#218838}"
+                        TextColor="White"
+                        CornerRadius="5" />
                 <!-- Summary Frame -->
                 <Frame BorderColor="LightGray"
                        CornerRadius="10"

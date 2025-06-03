@@ -9,10 +9,6 @@
         <ScrollView>
             <VerticalStackLayout Padding="20"
                                  Spacing="15">
-                <Label Text="Catálogo de Productos"
-                       FontSize="24"
-                       FontAttributes="Bold"
-                       HorizontalOptions="Center" />
                 <ActivityIndicator IsRunning="{Binding Cargando}"
                                    IsVisible="{Binding Cargando}"
                                    HorizontalOptions="Center" />

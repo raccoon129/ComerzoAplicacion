@@ -28,7 +28,7 @@
             ContentTemplate="{DataTemplate local:VentaPage}"
             Route="VentaPage"/>
         </Tab>
-        <Tab Title="Inventario"
+        <Tab Title="Productos"
              Icon="inventario.png">
             <ShellContent
             ContentTemplate="{DataTemplate local:InventarioPage}" 
