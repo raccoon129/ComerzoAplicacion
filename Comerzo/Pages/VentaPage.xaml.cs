@@ -100,7 +100,6 @@ public partial class VentaPage : ContentPage, INotifyPropertyChanged
 
     public ICommand CargarDatosCommand { get; }
     public ICommand VerDetalleCommand { get; }
-    //public ICommand NuevaVentaCommand { get; }
 
     #endregion
 
@@ -117,8 +116,7 @@ public partial class VentaPage : ContentPage, INotifyPropertyChanged
 
         // Inicializar comandos
         CargarDatosCommand = new Command(async () => await CargarDatos());
-        VerDetalleCommand = new Command<venta>(async (v) => await MostrarDetalleVenta(v));
-        //NuevaVentaCommand = new Command(async () => await NavegarANuevaVenta());
+        VerDetalleCommand = new Command<venta>(async (v) => await NavegarADetalleVenta(v));
 
         try
         {
@@ -254,9 +252,9 @@ public partial class VentaPage : ContentPage, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Muestra los detalles de una venta
+    /// Navega a la página de detalle de venta cuando se selecciona una venta
     /// </summary>
-    private async Task MostrarDetalleVenta(venta venta)
+    private async Task NavegarADetalleVenta(venta venta)
     {
         if (venta == null) return;
 
@@ -264,41 +262,20 @@ public partial class VentaPage : ContentPage, INotifyPropertyChanged
         {
             Cargando = true;
 
-            // Obtener los detalles de la venta
-            var detalles = await _ventaDetalleManager.ObtenerPorVenta(venta.id_venta);
-
-            if (detalles == null || !detalles.Any())
+            // Verificar que la venta existe antes de navegar
+            var ventaVerificada = await _ventaManager.ObtenerPorId(venta.id_venta);
+            if (ventaVerificada == null)
             {
-                await DisplayAlert("Aviso", "No se encontraron detalles para esta venta", "OK");
+                await DisplayAlert("Error", "No se pudo encontrar la venta seleccionada.", "OK");
                 return;
             }
 
-            // Preparar el mensaje con todos los detalles
-            var mensaje = new StringBuilder();
-            mensaje.AppendLine($"Venta #{venta.id_venta}");
-            mensaje.AppendLine($"Fecha: {venta.fecha_hora_venta:dd/MM/yyyy HH:mm}");
-            mensaje.AppendLine();
-            mensaje.AppendLine("Productos:");
-
-            foreach (var detalle in detalles)
-            {
-                // Obtener información del producto
-                var producto = await _productoManager.ObtenerPorId(detalle.id_producto);
-                string nombreProducto = producto?.nombre_producto ?? $"Producto #{detalle.id_producto}";
-
-                mensaje.AppendLine($"- {nombreProducto}");
-                mensaje.AppendLine($"  {detalle.cantidad_vendida} x ${detalle.precio_unitario_venta:N2} = ${detalle.subtotal_detalle:N2}");
-            }
-
-            mensaje.AppendLine();
-            mensaje.AppendLine($"Total: ${venta.monto_total_venta:N2}");
-
-            // Mostrar el detalle
-            await DisplayAlert($"Detalle de Venta #{venta.id_venta}", mensaje.ToString(), "Cerrar");
+            // Navegar a la página de detalle de venta indicando que venimos de VentaPage
+            await Navigation.PushAsync(new DetalleVenta(venta.id_venta, DetalleVenta.PaginaOrigen.VentaPage));
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Error al cargar detalles de la venta: {ex.Message}", "OK");
+            await DisplayAlert("Error", $"Error al navegar al detalle de la venta: {ex.Message}", "OK");
         }
         finally
         {
@@ -306,15 +283,5 @@ public partial class VentaPage : ContentPage, INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Navega a la página para crear una nueva venta
-    /// </summary>
-    private async Task NavegarANuevaVenta()
-    {
-        // Aquí se implementaría la navegación a la página de nueva venta
-        await DisplayAlert("Información", "Funcionalidad de nueva venta no implementada", "OK");
-
-        // Cuando esté implementada la página de nueva venta:
-        // await Navigation.PushAsync(new NuevaVentaPage());
-    }
+    // El método MostrarDetalleVenta ya no es necesario, lo hemos reemplazado por NavegarADetalleVenta
 }
