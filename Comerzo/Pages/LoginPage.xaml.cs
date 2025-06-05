@@ -10,7 +10,7 @@ public partial class LoginPage : ContentPage
     public LoginPage()
     {
         InitializeComponent();
-        usuarioManager=FabricManager.UsuarioManager;
+        usuarioManager = FabricManager.UsuarioManager;
     }
 
     private async void btnIniciarSesion_Clicked(object sender, EventArgs e)
@@ -24,16 +24,39 @@ public partial class LoginPage : ContentPage
             await DisplayAlert("Comerzo", "Por favor, complete todos los campos.", "Ok");
             return;
         }
+
+        // Deshabilitar el botón e iniciar indicador de actividad
+        SetLoadingState(true);
+
         await OnLogin(nombreUsuario, claveUsuario);
 
+        // Habilitar el botón y ocultar indicador de actividad
+        SetLoadingState(false);
     }
+
+    private void SetLoadingState(bool isLoading)
+    {
+        // Cambiar el estado del botón
+        btnIniciarSesion.IsEnabled = !isLoading;
+        btnIniciarSesion.Text = isLoading ? "Iniciando sesión..." : "Iniciar sesión";
+        
+        // Mostrar/ocultar el indicador de actividad
+        loginActivityIndicator.IsRunning = isLoading;
+        loginActivityIndicator.IsVisible = isLoading;
+    }
+
     public async Task OnLogin(string nombreUsuario, string claveUsuario)
     {
-        usuario usuario = usuarioManager.Login(new LoginModel() { nombre_usuario_login = nombreUsuario, clave_usuario = claveUsuario }).Result;
-
         try
         {
-            if (usuario !=null)
+            // Usar await correctamente con Login - evita usar .Result que puede causar bloqueos
+            usuario usuario = await usuarioManager.Login(new LoginModel() 
+            { 
+                nombre_usuario_login = nombreUsuario, 
+                clave_usuario = claveUsuario 
+            });
+
+            if (usuario != null)
             {
                 COMMON.Params.UsuarioConectado = usuario.nombre_usuario_login;
                 // Navega a la página principal
@@ -43,14 +66,13 @@ public partial class LoginPage : ContentPage
             {
                 await DisplayAlert("Comerzo", "Nombre de usuario y/o Contraseña incorrecta", "Ok");
             }
-
         }
         catch (Exception ex)
         {
             // Captura cualquier excepción inesperada durante la operación de base de datos
             await DisplayAlert("Comerzo", $"Ocurrió un error inesperado: {ex.Message}", "Ok");
-            // Registra los detalles de la excepción para depuración (ej. en la consola, o un servicio de logging)
-            Console.WriteLine($"Error al guardar usuario en CrearCuentaPage: {ex.Message}");
+            // Registra los detalles de la excepción para depuración
+            Console.WriteLine($"Error al iniciar sesión: {ex.Message}");
         }
     }
 }

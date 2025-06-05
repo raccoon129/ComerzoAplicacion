@@ -39,7 +39,6 @@
                 <Label x:Name="lblEncargado" />
                 <Button Text="Editar"
                         Clicked="OnEditarClicked"
-                        BackgroundColor="#FFA000"
                         TextColor="White"
                         CornerRadius="10"
                         Margin="0,20,0,0" />
