@@ -49,7 +49,8 @@
                                                              Spacing="5">
                                             <Label Text="{Binding nombre_producto}"
                                                    FontSize="16"
-                                                   FontAttributes="Bold" />
+                                                   FontAttributes="Bold" 
+                                                   TextColor="DarkOrange" />
                                             <Label Text="{Binding descripcion_producto}"
                                                    FontSize="14"
                                                    TextColor="Gray"

@@ -38,45 +38,18 @@ public partial class ConfiguracionPage : ContentPage
             InformacionLayout.IsVisible = true;
         }
     }
-
-    private async void OnEditarClicked(object sender, EventArgs e)
+ private async void OnEditarClicked(object sender, EventArgs e)
     {
-        // Si no hay info existente, inicializa
         if (infoComercio == null)
         {
-            infoComercio = new informacion_comercio
-            {
-                fecha_creacion = DateTime.Now
-            };
-        }
-
-        // Navegar a una página de edición o abrir un DisplayPromptAsync secuencial (rápido y funcional)
-        string nombre = await DisplayPromptAsync("Nombre del Comercio", "Ingresa el nombre:", initialValue: infoComercio.nombre_comercio);
-        if (string.IsNullOrWhiteSpace(nombre)) return;
-        infoComercio.nombre_comercio = nombre;
-
-        string razon = await DisplayPromptAsync("Razón Social", "Ingresa la razón social:", initialValue: infoComercio.razon_social);
-        infoComercio.razon_social = razon;
-
-        string descripcion = await DisplayPromptAsync("Descripción", "Ingresa una descripción:", initialValue: infoComercio.descripcion);
-        if (string.IsNullOrWhiteSpace(descripcion)) return;
-        infoComercio.descripcion = descripcion;
-
-        string encargado = await DisplayPromptAsync("Encargado", "ID del encargado:", initialValue: infoComercio.encargado.ToString());
-        if (!int.TryParse(encargado, out int idEncargado)) return;
-        infoComercio.encargado = idEncargado;
-
-        // Guardar en API
-        var resultado = await infoComercioManager.GuardarInformacionComercio(infoComercio);
-
-        if (resultado != null)
-        {
-            await DisplayAlert("Éxito", "Información guardada correctamente", "OK");
-            CargarInformacion();
+            // If no existing info, create a new instance to pass to the form
+            // Or use the parameterless constructor of InformacionComercioFormPage
+            await Navigation.PushAsync(new InformacionComercioFormPage());
         }
         else
         {
-            await DisplayAlert("Error", infoComercioManager.Error, "OK");
+            // Pass the existing info to the form for editing
+            await Navigation.PushAsync(new InformacionComercioFormPage(infoComercio));
         }
     }
 }

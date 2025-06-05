@@ -47,7 +47,8 @@
                                            Grid.Column="0"
                                            Text="{Binding nombre_producto}"
                                            FontAttributes="Bold"
-                                           FontSize="18" />
+                                           FontSize="18" 
+                                           TextColor="DarkOrange" />
                                     <Label Grid.Row="1"
                                            Grid.Column="0"
                                            Text="{Binding descripcion_producto}"
